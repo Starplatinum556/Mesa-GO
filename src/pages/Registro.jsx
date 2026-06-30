@@ -1,6 +1,32 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 function Registro() {
+  const navigate = useNavigate();
+
+  const [rolUsuario, setRolUsuario] = useState("");
+
+  const manejarRegistro = (e) => {
+    e.preventDefault();
+
+    if (!rolUsuario) {
+      alert("Selecciona un tipo de usuario para continuar.");
+      return;
+    }
+
+    if (rolUsuario === "cliente") {
+      navigate("/");
+    }
+
+    if (rolUsuario === "restaurante") {
+      navigate("/restaurante");
+    }
+
+    if (rolUsuario === "empleado") {
+      navigate("/restaurante/cocina");
+    }
+  };
+
   return (
     <main className="auth-pagina">
       <section className="auth-card registro-card">
@@ -25,11 +51,12 @@ function Registro() {
           <span>Nuevo usuario</span>
           <h2>Crear cuenta</h2>
           <p>
-            Registra tus datos para empezar a utilizar el sistema MesaGo.
+            Registra tus datos y selecciona el tipo de usuario que utilizará
+            MesaGo.
           </p>
         </div>
 
-        <form className="auth-form">
+        <form className="auth-form" onSubmit={manejarRegistro}>
           <div className="campo">
             <label>Nombre completo</label>
             <input type="text" placeholder="Ingresa tu nombre completo" />
@@ -38,6 +65,19 @@ function Registro() {
           <div className="campo">
             <label>Correo electrónico</label>
             <input type="email" placeholder="ejemplo@correo.com" />
+          </div>
+
+          <div className="campo">
+            <label>Tipo de usuario</label>
+            <select
+              value={rolUsuario}
+              onChange={(e) => setRolUsuario(e.target.value)}
+            >
+              <option value="">Selecciona un tipo de usuario</option>
+              <option value="cliente">Cliente</option>
+              <option value="restaurante">Restaurante / Administrador</option>
+              <option value="empleado">Empleado</option>
+            </select>
           </div>
 
           <div className="campo">
@@ -50,7 +90,7 @@ function Registro() {
             <input type="password" placeholder="Repite tu contraseña" />
           </div>
 
-          <button type="button" className="btn-auth">
+          <button type="submit" className="btn-auth">
             Registrarse
           </button>
         </form>
