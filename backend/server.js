@@ -80,3 +80,33 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Backend MesaGo corriendo en http://localhost:${PORT}`);
 });
+
+// ==========================
+// PEDIDOS
+// ==========================
+app.get("/api/pedidos", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        p.id,
+        p.codigo,
+        m.numero AS mesa,
+        p.estado,
+        p.metodo_pago,
+        p.total,
+        p.creado_en,
+        STRING_AGG(pr.nombre || ' x' || dp.cantidad, ', ') AS productos,
+        COUNT(dp.id) AS cantidad_productos
+      FROM pedidos p
+      JOIN mesas m ON p.mesa_id = m.id
+      JOIN detalle_pedido dp ON dp.pedido_id = p.id
+      JOIN productos pr ON pr.id = dp.producto_id
+      GROUP BY p.id, m.numero
+      ORDER BY p.creado_en DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener pedidos" });
+  }
+});
