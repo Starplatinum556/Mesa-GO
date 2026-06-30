@@ -1,0 +1,497 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", Arial, Helvetica, sans-serif;
+  background: #eef3f9;
+  color: #1e293b;
+}
+
+button {
+  font-family: inherit;
+}
+
+.pagina {
+  min-height: 100vh;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(21, 101, 216, 0.16), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.16), transparent 30%),
+    #eef3f9;
+}
+
+.contenedor-app {
+  max-width: 1180px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.12);
+}
+
+/* Navbar */
+
+.navbar {
+  min-height: 78px;
+  padding: 0 34px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 26px;
+  align-items: center;
+}
+
+.logo-mesago {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-cuadro {
+  width: 46px;
+  height: 46px;
+  background: linear-gradient(135deg, #1565d8, #2384ff);
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 22px rgba(21, 101, 216, 0.28);
+}
+
+.logo-cuadro svg {
+  width: 32px;
+  height: 32px;
+}
+
+.logo-cuadro rect,
+.logo-cuadro path,
+.logo-cuadro circle {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.logo-mesago h1 {
+  margin: 0;
+  font-size: 31px;
+  color: #1565d8;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.logo-mesago h1 span {
+  color: #16a34a;
+}
+
+.menu-nav {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+
+.menu-nav a {
+  text-decoration: none;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.menu-nav a:hover {
+  color: #1565d8;
+}
+
+.acciones-navbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.acciones-navbar button,
+.botones-principales button {
+  border: none;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.btn-login {
+  background: #f8fafc;
+  color: #1565d8;
+  padding: 12px 18px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px #dbeafe;
+}
+
+.btn-registro {
+  background: #1565d8;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 999px;
+  box-shadow: 0 10px 22px rgba(21, 101, 216, 0.25);
+}
+
+/* Banner */
+
+.banner {
+  margin: 0 20px;
+  min-height: 170px;
+  border-radius: 22px;
+  padding: 30px 44px;
+  display: grid;
+  grid-template-columns: auto 1fr 300px;
+  align-items: center;
+  gap: 24px;
+  color: white;
+  background: linear-gradient(135deg, #287cff, #0058d8);
+  position: relative;
+  overflow: hidden;
+}
+
+.banner::after {
+  content: "";
+  position: absolute;
+  width: 235px;
+  height: 235px;
+  right: -45px;
+  top: -80px;
+  border-radius: 50%;
+  border: 36px solid rgba(255, 255, 255, 0.07);
+}
+
+.banner-icono {
+  width: 92px;
+  height: 92px;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.banner-icono svg {
+  width: 72px;
+  height: 72px;
+}
+
+.banner-icono circle,
+.banner-icono path {
+  fill: none;
+  stroke: white;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.banner p {
+  margin: 0;
+  font-size: 16px;
+  opacity: 0.92;
+  font-weight: 600;
+}
+
+.banner h2 {
+  margin: 5px 0 0;
+  font-size: 42px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.banner-frase {
+  text-align: right;
+  position: relative;
+  z-index: 1;
+}
+
+.banner-frase p {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+/* Contenido principal */
+
+.inicio-contenido {
+  padding: 34px;
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 36px;
+  align-items: center;
+}
+
+.etiqueta {
+  display: inline-flex;
+  background: #dcfce7;
+  color: #16a34a;
+  padding: 9px 15px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 13px;
+}
+
+.texto-principal h3 {
+  font-size: 43px;
+  line-height: 1.08;
+  margin: 22px 0 18px;
+  color: #0f172a;
+  letter-spacing: -1.3px;
+}
+
+.texto-principal p {
+  color: #475569;
+  font-size: 16px;
+  line-height: 1.75;
+  max-width: 540px;
+}
+
+.botones-principales {
+  display: flex;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.btn-principal {
+  background: #1565d8;
+  color: white;
+  padding: 15px 24px;
+  border-radius: 14px;
+  box-shadow: 0 12px 24px rgba(21, 101, 216, 0.25);
+}
+
+.btn-secundario {
+  background: white;
+  color: #1565d8;
+  padding: 15px 24px;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 2px #1565d8;
+}
+
+/* Vista previa */
+
+.vista-previa {
+  background: #f8fafc;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+}
+
+.vista-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.vista-header strong {
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.vista-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.vista-header span {
+  background: #eef6ff;
+  color: #1565d8;
+  padding: 10px 13px;
+  border-radius: 13px;
+  font-weight: 900;
+}
+
+.pasos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.pasos article {
+  background: white;
+  padding: 18px;
+  border-radius: 18px;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+.paso-icono {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: white;
+  font-weight: 900;
+  margin-bottom: 20px;
+}
+
+.paso-icono.azul {
+  background: linear-gradient(135deg, #1565d8, #4ea1ff);
+}
+
+.paso-icono.verde {
+  background: linear-gradient(135deg, #16a34a, #4ade80);
+}
+
+.paso-icono.morado {
+  background: linear-gradient(135deg, #6b35a8, #a855f7);
+}
+
+.pasos h4 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.pasos p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.resumen-sistema {
+  margin-top: 18px;
+  background: white;
+  border-radius: 18px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+}
+
+.resumen-sistema strong {
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.resumen-sistema p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.resumen-sistema button {
+  border: none;
+  background: #1565d8;
+  color: white;
+  padding: 13px 20px;
+  border-radius: 13px;
+  font-weight: 900;
+}
+
+/* Beneficios */
+
+.beneficios {
+  padding: 0 34px 34px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.beneficios article {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.beneficios span {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: #eef6ff;
+  color: #1565d8;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.beneficios h4 {
+  margin: 16px 0 8px;
+  color: #0f172a;
+}
+
+.beneficios p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/* Responsive */
+
+@media (max-width: 980px) {
+  .navbar {
+    grid-template-columns: 1fr;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .logo-mesago {
+    justify-content: center;
+  }
+
+  .menu-nav,
+  .acciones-navbar {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .banner {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .banner-icono {
+    margin: auto;
+  }
+
+  .banner-frase {
+    text-align: center;
+  }
+
+  .inicio-contenido {
+    grid-template-columns: 1fr;
+  }
+
+  .beneficios {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .pagina {
+    padding: 10px;
+  }
+
+  .banner h2 {
+    font-size: 32px;
+  }
+
+  .texto-principal h3 {
+    font-size: 32px;
+  }
+
+  .botones-principales {
+    flex-direction: column;
+  }
+
+  .pasos {
+    grid-template-columns: 1fr;
+  }
+
+  .resumen-sistema {
+    grid-template-columns: 1fr;
+  }
+
+  .beneficios {
+    grid-template-columns: 1fr;
+  }
+}
