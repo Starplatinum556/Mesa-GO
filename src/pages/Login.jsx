@@ -1,6 +1,55 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 function Login() {
+  const navigate = useNavigate();
+
+  const [correo, setCorreo] = useState("");
+  const [password, setPassword] = useState("");
+  const [cargando, setCargando] = useState(false);
+
+  const manejarLogin = async (e) => {
+    e.preventDefault();
+
+    if (!correo || !password) {
+      alert("Ingresa tu correo y contraseña.");
+      return;
+    }
+
+    setCargando(true);
+
+    try {
+      const respuesta = await fetch("http://localhost:4000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ correo, password }),
+      });
+
+      const datos = await respuesta.json();
+
+      if (!respuesta.ok) {
+        alert(datos.error || "Correo o contraseña incorrectos.");
+        return;
+      }
+
+      // Guardamos el usuario logueado para usarlo en otras pantallas
+      sessionStorage.setItem("usuarioMesaGo", JSON.stringify(datos));
+
+      if (datos.rol === "ADMIN") {
+        navigate("/restaurante");
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(
+        "No se pudo conectar con el servidor. Verifica que el backend esté corriendo en localhost:4000."
+      );
+    } finally {
+      setCargando(false);
+    }
+  };
+
   return (
     <main className="auth-pagina">
       <section className="auth-card">
@@ -29,15 +78,25 @@ function Login() {
           </p>
         </div>
 
-        <form className="auth-form">
+        <form className="auth-form" onSubmit={manejarLogin}>
           <div className="campo">
             <label>Correo electrónico</label>
-            <input type="email" placeholder="ejemplo@correo.com" />
+            <input
+              type="email"
+              placeholder="ejemplo@correo.com"
+              value={correo}
+              onChange={(e) => setCorreo(e.target.value)}
+            />
           </div>
 
           <div className="campo">
             <label>Contraseña</label>
-            <input type="password" placeholder="Ingresa tu contraseña" />
+            <input
+              type="password"
+              placeholder="Ingresa tu contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
 
           <div className="opciones-form">
@@ -49,8 +108,8 @@ function Login() {
             <a href="#">¿Olvidaste tu contraseña?</a>
           </div>
 
-          <button type="button" className="btn-auth">
-            Ingresar
+          <button type="submit" className="btn-auth" disabled={cargando}>
+            {cargando ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
 
