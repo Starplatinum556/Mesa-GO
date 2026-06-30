@@ -1,15 +1,28 @@
+import { useEffect, useState } from "react";
 import { Plus, QrCode, Table2, Users } from "lucide-react";
 
-const mesas = [
-  { numero: "Mesa 01", zona: "Salón VIP", capacidad: 4, estado: "Disponible", color: "disponible" },
-  { numero: "Mesa 02", zona: "Salón Principal", capacidad: 2, estado: "Ocupada", color: "ocupada" },
-  { numero: "Mesa 03", zona: "Salón Principal", capacidad: 4, estado: "Reservada", color: "reservada" },
-  { numero: "Mesa 04", zona: "Terraza", capacidad: 6, estado: "Disponible", color: "disponible" },
-  { numero: "Mesa 05", zona: "Terraza", capacidad: 4, estado: "Ocupada", color: "ocupada" },
-  { numero: "Mesa 06", zona: "Salón Familiar", capacidad: 8, estado: "Disponible", color: "disponible" },
-];
-
 function Mesas() {
+  const [mesas, setMesas] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetch("http://localhost:4000/api/mesas")
+      .then((res) => res.json())
+      .then((datos) => {
+        setMesas(datos);
+        setCargando(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("No se pudo conectar con el servidor (localhost:4000).");
+        setCargando(false);
+      });
+  }, []);
+
+  const totalMesas = mesas.length;
+  const disponibles = mesas.filter((m) => m.disponible).length;
+
   return (
     <section className="modulo-admin">
       <div className="recepcion-header fila-header">
@@ -24,74 +37,86 @@ function Mesas() {
         </button>
       </div>
 
-      <section className="metricas-grid tres-columnas">
-        <article className="metrica-card">
-          <div className="metrica-icon azul">
-            <Table2 size={28} />
-          </div>
-          <div>
-            <p>Total de mesas</p>
-            <h2>6</h2>
-            <span>Registradas en el local</span>
-          </div>
-        </article>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {cargando && <p>Cargando mesas...</p>}
 
-        <article className="metrica-card">
-          <div className="metrica-icon verde">
-            <Users size={28} />
-          </div>
-          <div>
-            <p>Disponibles</p>
-            <h2>3</h2>
-            <span>Listas para uso</span>
-          </div>
-        </article>
-
-        <article className="metrica-card">
-          <div className="metrica-icon naranja">
-            <QrCode size={28} />
-          </div>
-          <div>
-            <p>QR activos</p>
-            <h2>6</h2>
-            <span>Códigos generados</span>
-          </div>
-        </article>
-      </section>
-
-      <section className="grid-mesas">
-        {mesas.map((mesa) => (
-          <article className="mesa-card" key={mesa.numero}>
-            <div className="mesa-card-header">
-              <div className={`mesa-card-icon ${mesa.color}`}>
-                <Table2 size={24} />
+      {!cargando && !error && (
+        <>
+          <section className="metricas-grid tres-columnas">
+            <article className="metrica-card">
+              <div className="metrica-icon azul">
+                <Table2 size={28} />
               </div>
+              <div>
+                <p>Total de mesas</p>
+                <h2>{totalMesas}</h2>
+                <span>Registradas en el local</span>
+              </div>
+            </article>
 
-              <span className={`badge ${mesa.color}`}>{mesa.estado}</span>
-            </div>
+            <article className="metrica-card">
+              <div className="metrica-icon verde">
+                <Users size={28} />
+              </div>
+              <div>
+                <p>Disponibles</p>
+                <h2>{disponibles}</h2>
+                <span>Listas para uso</span>
+              </div>
+            </article>
 
-            <h3>{mesa.numero}</h3>
-            <p>{mesa.zona}</p>
+            <article className="metrica-card">
+              <div className="metrica-icon naranja">
+                <QrCode size={28} />
+              </div>
+              <div>
+                <p>QR activos</p>
+                <h2>{totalMesas}</h2>
+                <span>Códigos generados</span>
+              </div>
+            </article>
+          </section>
 
-            <div className="mesa-detalles">
-              <span>
-                <Users size={16} />
-                Capacidad: {mesa.capacidad}
-              </span>
+          <section className="grid-mesas">
+            {mesas.map((mesa) => {
+              const color = mesa.disponible ? "disponible" : "ocupada";
+              const estado = mesa.disponible ? "Disponible" : "Ocupada";
 
-              <span>
-                <QrCode size={16} />
-                QR asignado
-              </span>
-            </div>
+              return (
+                <article className="mesa-card" key={mesa.id}>
+                  <div className="mesa-card-header">
+                    <div className={`mesa-card-icon ${color}`}>
+                      <Table2 size={24} />
+                    </div>
 
-            <div className="acciones-mesa">
-              <button className="btn-ver">Ver QR</button>
-              <button className="btn-ok">Editar</button>
-            </div>
-          </article>
-        ))}
-      </section>
+                    <span className={`badge ${color}`}>{estado}</span>
+                  </div>
+
+                  <h3>Mesa {mesa.numero}</h3>
+                  <p>Código QR: {mesa.qr_codigo}</p>
+
+                  <div className="mesa-detalles">
+                    <span>
+                      <Users size={16} />
+                      Capacidad: {mesa.capacidad}
+                    </span>
+
+                    <span>
+                      <QrCode size={16} />
+                      QR asignado
+                    </span>
+                  </div>
+
+                  <div className="acciones-mesa">
+                    <button className="btn-ver">Ver QR</button>
+                    <button className="btn-ok">Editar</button>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        </>
+      )}
     </section>
   );
 }
