@@ -11,12 +11,23 @@ import Mesas from "./pages/restaurante/Mesas";
 import Productos from "./pages/restaurante/Productos";
 import Reportes from "./pages/restaurante/Reportes";
 import Configuracion from "./pages/restaurante/Configuracion";
-
+import { Toaster } from "react-hot-toast";
+import MenuDigital from "./pages/MenuDigital";
 import "./index.css";
 
 function App() {
   return (
     <BrowserRouter>
+    <Toaster
+  position="top-right"
+  toastOptions={{
+    duration: 3000,
+    style: {
+      borderRadius: "14px",
+      fontWeight: "700",
+    },
+  }}
+/>
       <Routes>
         {/* Pantallas públicas */}
         <Route path="/" element={<Inicio />} />
@@ -32,6 +43,7 @@ function App() {
           <Route path="productos" element={<Productos />} />
           <Route path="reportes" element={<Reportes />} />
           <Route path="configuracion" element={<Configuracion />} />
+          <Route path="/menu/:codigoQr" element={<MenuDigital />} />
         </Route>
       </Routes>
     </BrowserRouter>
