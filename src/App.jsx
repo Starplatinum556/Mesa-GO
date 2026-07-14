@@ -33,6 +33,7 @@ function App() {
         <Route path="/" element={<Inicio />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
+        <Route path="/menu/:codigoQr" element={<MenuDigital />} />
 
         {/* Panel interno del restaurante */}
         <Route path="/restaurante" element={<RestauranteLayout />}>
@@ -43,7 +44,6 @@ function App() {
           <Route path="productos" element={<Productos />} />
           <Route path="reportes" element={<Reportes />} />
           <Route path="configuracion" element={<Configuracion />} />
-          <Route path="/menu/:codigoQr" element={<MenuDigital />} />
         </Route>
       </Routes>
     </BrowserRouter>

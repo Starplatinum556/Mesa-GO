@@ -321,6 +321,38 @@ app.delete("/api/productos/:id", verificarToken, verificarRol("ADMIN"), async (r
 });
 
 // ==========================
+// MENU DIGITAL — pública, se accede vía QR (sin login)
+// ==========================
+app.get("/api/menu/:codigoQr", async (req, res) => {
+  const { codigoQr } = req.params;
+
+  try {
+    const mesaResult = await pool.query(
+      "SELECT * FROM mesas WHERE qr_codigo = $1",
+      [codigoQr]
+    );
+
+    if (mesaResult.rows.length === 0) {
+      return res.status(404).json({ error: "No se encontró la mesa asociada al código QR." });
+    }
+
+    const mesa = mesaResult.rows[0];
+
+    const productosResult = await pool.query(
+      "SELECT * FROM productos WHERE disponible = true ORDER BY id"
+    );
+
+    res.json({
+      mesa,
+      productos: productosResult.rows,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener el menú." });
+  }
+});
+
+// ==========================
 // PEDIDOS (MG-59: ADMIN, COCINERO, DESPACHADOR)
 // ==========================
 app.get("/api/pedidos", verificarToken, verificarRol("ADMIN", "COCINERO", "DESPACHADOR"), async (req, res) => {
