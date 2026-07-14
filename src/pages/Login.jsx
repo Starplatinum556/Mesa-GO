@@ -21,7 +21,7 @@ function Login() {
     try {
       const respuesta = await fetch("http://localhost:4000/api/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {"Content-Type": "application/json","Authorization": `Bearer ${sessionStorage.getItem("token")}`},
         body: JSON.stringify({ correo, password }),
       });
 
@@ -33,9 +33,10 @@ function Login() {
       }
 
       // Guardamos el usuario logueado para usarlo en otras pantallas
-      sessionStorage.setItem("usuarioMesaGo", JSON.stringify(datos));
+      sessionStorage.setItem("token", datos.token);
+      sessionStorage.setItem("usuarioMesaGo", JSON.stringify(datos.usuario));
 
-      if (datos.rol === "ADMIN") {
+      if (datos.usuario.rol === "ADMIN") {
         navigate("/restaurante");
       } else {
         navigate("/");
