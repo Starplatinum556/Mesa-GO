@@ -1,29 +1,76 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { apiFetch } from "../api";
 
 function Registro() {
   const navigate = useNavigate();
 
+  const [nombre, setNombre] = useState("");
+  const [correo, setCorreo] = useState("");
   const [rolUsuario, setRolUsuario] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmar, setConfirmar] = useState("");
+  const [cargando, setCargando] = useState(false);
 
-  const manejarRegistro = (e) => {
+  const manejarRegistro = async (e) => {
     e.preventDefault();
 
-    if (!rolUsuario) {
-      alert("Selecciona un tipo de usuario para continuar.");
+    if (!nombre || !correo || !rolUsuario || !password || !confirmar) {
+      alert("Todos los campos son requeridos.");
       return;
     }
 
-    if (rolUsuario === "cliente") {
-      navigate("/");
+    if (password !== confirmar) {
+      alert("Las contraseñas no coinciden.");
+      return;
     }
 
-    if (rolUsuario === "restaurante") {
-      navigate("/restaurante");
+    if (password.length < 6) {
+      alert("La contraseña debe tener al menos 6 caracteres.");
+      return;
     }
 
-    if (rolUsuario === "empleado") {
-      navigate("/restaurante/cocina");
+    // Mapear el valor del select al rol que espera el backend
+    const rolMap = {
+      cliente: "CLIENTE",
+      restaurante: "ADMIN",
+      empleado: "COCINERO",
+    };
+    const rol = rolMap[rolUsuario];
+
+    setCargando(true);
+
+    try {
+      const respuesta = await fetch("http://localhost:4000/api/registro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, correo, password, rol }),
+      });
+
+      const datos = await respuesta.json();
+
+      if (!respuesta.ok) {
+        alert(datos.error || "Error al registrar usuario.");
+        return;
+      }
+
+      // Guardar token y usuario en sessionStorage
+      sessionStorage.setItem("token", datos.token);
+      sessionStorage.setItem("usuarioMesaGo", JSON.stringify(datos.usuario));
+
+      // Redirigir según rol
+      if (datos.usuario.rol === "ADMIN") {
+        navigate("/restaurante");
+      } else if (datos.usuario.rol === "COCINERO") {
+        navigate("/restaurante/cocina");
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo conectar con el servidor. Verifica que el backend esté corriendo en localhost:4000.");
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -59,12 +106,22 @@ function Registro() {
         <form className="auth-form" onSubmit={manejarRegistro}>
           <div className="campo">
             <label>Nombre completo</label>
-            <input type="text" placeholder="Ingresa tu nombre completo" />
+            <input
+              type="text"
+              placeholder="Ingresa tu nombre completo"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+            />
           </div>
 
           <div className="campo">
             <label>Correo electrónico</label>
-            <input type="email" placeholder="ejemplo@correo.com" />
+            <input
+              type="email"
+              placeholder="ejemplo@correo.com"
+              value={correo}
+              onChange={(e) => setCorreo(e.target.value)}
+            />
           </div>
 
           <div className="campo">
@@ -82,16 +139,26 @@ function Registro() {
 
           <div className="campo">
             <label>Contraseña</label>
-            <input type="password" placeholder="Crea una contraseña" />
+            <input
+              type="password"
+              placeholder="Crea una contraseña (mínimo 6 caracteres)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
 
           <div className="campo">
             <label>Confirmar contraseña</label>
-            <input type="password" placeholder="Repite tu contraseña" />
+            <input
+              type="password"
+              placeholder="Repite tu contraseña"
+              value={confirmar}
+              onChange={(e) => setConfirmar(e.target.value)}
+            />
           </div>
 
-          <button type="submit" className="btn-auth">
-            Registrarse
+          <button type="submit" className="btn-auth" disabled={cargando}>
+            {cargando ? "Registrando..." : "Registrarse"}
           </button>
         </form>
 

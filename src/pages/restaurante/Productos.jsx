@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Edit, Package, Plus, Search, ToggleLeft, ToggleRight } from "lucide-react";
+import { apiFetch } from "../../api";
 
 function Productos() {
   const [productos, setProductos] = useState([]);
@@ -7,7 +8,7 @@ function Productos() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/productos")
+    apiFetch("/api/productos")
       .then((res) => res.json())
       .then((datos) => {
         setProductos(datos);

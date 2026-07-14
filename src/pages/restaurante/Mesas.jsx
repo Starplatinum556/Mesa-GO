@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, QrCode, Table2, Users } from "lucide-react";
+import { apiFetch } from "../../api";
 
 function Mesas() {
   const [mesas, setMesas] = useState([]);
@@ -7,7 +8,7 @@ function Mesas() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/mesas")
+    apiFetch("/api/mesas")
       .then((res) => res.json())
       .then((datos) => {
         setMesas(datos);
