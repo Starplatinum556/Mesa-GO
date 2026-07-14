@@ -12,6 +12,7 @@ import {
   Table2,
   Wallet,
 } from "lucide-react";
+import { apiFetch } from "../../api";
 
 function RecepcionPedidos() {
   const [pedidos, setPedidos] = useState([]);
@@ -19,7 +20,7 @@ function RecepcionPedidos() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/pedidos")
+    apiFetch("/api/pedidos")
       .then((res) => res.json())
       .then((datos) => {
         setPedidos(datos);
