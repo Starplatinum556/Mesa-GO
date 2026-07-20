@@ -1,3 +1,4 @@
+import { apiFetch } from "../../api";
 import { useEffect, useState } from "react";
 import { Plus, QrCode, Table2, Trash2, Edit, Users } from "lucide-react";
 import toast from "react-hot-toast";
@@ -6,6 +7,8 @@ import Modal from "../../components/Modal";
 import MesaForm from "../../components/MesaForm";
 
 function Mesas() {
+  const [qrData, setQrData] = useState(null);
+  const [qrModalAbierto, setQrModalAbierto] = useState(false);
   const [mesas, setMesas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -35,6 +38,7 @@ function Mesas() {
     setMesaEditar({
       ...mesa,
       estado: mesa.disponible ? "DISPONIBLE" : "OCUPADA",
+      qr_codigo: mesa.qr_codigo || "",
     });
     setModalAbierto(true);
   };
@@ -46,7 +50,6 @@ function Mesas() {
 
   const manejarGuardar = async (datos) => {
     try {
-      // Convertir estado texto a boolean para el backend
       const payload = {
         ...datos,
         disponible: datos.estado === "DISPONIBLE",
@@ -56,7 +59,7 @@ function Mesas() {
         await actualizarMesa(mesaEditar.id, payload);
         toast.success("Mesa actualizada correctamente.");
       } else {
-        await crearMesa(datos);
+        await crearMesa(payload);
         toast.success("Mesa creada correctamente.");
       }
       cerrarModal();
@@ -75,6 +78,47 @@ function Mesas() {
     } catch (err) {
       toast.error(err.message || "Error al eliminar la mesa.");
     }
+  };
+
+  const manejarVerQr = async (mesa) => {
+    try {
+      const res = await apiFetch(`/api/mesas/${mesa.id}/qr`);
+      const datos = await res.json();
+      if (!res.ok) {
+        toast.error(datos.error || "Error al obtener QR.");
+        return;
+      }
+      setQrData({ ...datos, mesa: { ...mesa, qr_codigo: datos.token } });
+      setQrModalAbierto(true);
+    } catch (err) {
+      toast.error("Error al conectar con el servidor.");
+    }
+  };
+
+  const manejarGenerarQr = async (mesa) => {
+    try {
+      const res = await apiFetch(`/api/mesas/${mesa.id}/qr`, { method: "POST" });
+      const datos = await res.json();
+      if (!res.ok) {
+        toast.error(datos.error || "Error al generar QR.");
+        return;
+      }
+      // Actualizamos la mesa con el nuevo qr_codigo
+      setQrData({ 
+        ...datos, 
+        mesa: { ...mesa, qr_codigo: datos.token } 
+      });
+      setQrModalAbierto(true);
+      toast.success("QR generado correctamente.");
+    } catch (err) {
+      toast.error("Error al conectar con el servidor.");
+    }
+  };
+
+  const cerrarModalQr = () => {
+    setQrModalAbierto(false);
+    setQrData(null);
+    cargarMesas();
   };
 
   const totalMesas = mesas.length;
@@ -164,6 +208,15 @@ function Mesas() {
                   <div className="acciones-mesa">
                     <button
                       className="btn-ver"
+                      onClick={() => mesa.qr_codigo ? manejarVerQr(mesa) : manejarGenerarQr(mesa)}
+                      title={mesa.qr_codigo ? "Ver QR" : "Generar QR"}
+                    >
+                      <QrCode size={15} />
+                      {mesa.qr_codigo ? "Ver QR" : "Generar QR"}
+                    </button>
+
+                    <button
+                      className="btn-ok"
                       onClick={() => abrirModalEditar(mesa)}
                     >
                       <Edit size={15} />
@@ -183,6 +236,41 @@ function Mesas() {
             })}
           </section>
         </>
+      )}
+
+      {qrModalAbierto && qrData && (
+        <Modal
+          titulo={`QR — Mesa ${qrData.mesa.numero}`}
+          onClose={cerrarModalQr}
+        >
+          <div style={{ textAlign: "center", padding: "1rem" }}>
+            <img src={qrData.qr} alt="Código QR" style={{ width: 220, height: 220 }} />
+            <p style={{ marginTop: "1rem", fontSize: "0.85rem", color: "#666" }}>
+              Escanea este QR desde tu celular para acceder al menú de la mesa {qrData.mesa.numero}
+            </p>
+            <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginTop: "1rem" }}>
+              <a
+                href={qrData.qr}
+                download={`QR-Mesa-${qrData.mesa.numero}.png`}
+                className="btn-accion-principal"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textDecoration: "none",
+                }}
+              >
+                Descargar QR
+              </a>
+              <button
+                className="btn-ver"
+                onClick={() => manejarGenerarQr(qrData.mesa)}
+              >
+                Regenerar QR
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {modalAbierto && (
