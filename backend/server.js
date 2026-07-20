@@ -252,7 +252,7 @@ app.get("/api/productos", verificarToken, async (req, res) => {
 });
 
 app.post("/api/productos", verificarToken, verificarRol("ADMIN"), async (req, res) => {
-  const { nombre, precio } = req.body;
+  const { nombre, precio, categoria, descripcion, disponible } = req.body;
   if (!nombre || !precio) {
     return res.status(400).json({ error: "Nombre y precio son requeridos." });
   }
@@ -261,8 +261,8 @@ app.post("/api/productos", verificarToken, verificarRol("ADMIN"), async (req, re
   }
   try {
     const result = await pool.query(
-      "INSERT INTO productos (nombre, precio) VALUES ($1, $2) RETURNING *",
-      [nombre, precio]
+      "INSERT INTO productos (nombre, precio, categoria, descripcion, disponible) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+      [nombre, precio, categoria || "General", descripcion || "", disponible ?? true]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -272,14 +272,14 @@ app.post("/api/productos", verificarToken, verificarRol("ADMIN"), async (req, re
 
 app.put("/api/productos/:id", verificarToken, verificarRol("ADMIN"), async (req, res) => {
   const { id } = req.params;
-  const { nombre, precio, disponible } = req.body;
+  const { nombre, precio, categoria, descripcion, disponible } = req.body;
   if (!nombre || !precio) {
     return res.status(400).json({ error: "Nombre y precio son requeridos." });
   }
   try {
     const result = await pool.query(
-      "UPDATE productos SET nombre=$1, precio=$2, disponible=$3 WHERE id=$4 RETURNING *",
-      [nombre, precio, disponible ?? true, id]
+      "UPDATE productos SET nombre=$1, precio=$2, categoria=$3, descripcion=$4, disponible=$5 WHERE id=$6 RETURNING *",
+      [nombre, precio, categoria || "General", descripcion || "", disponible ?? true, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Producto no encontrado." });
