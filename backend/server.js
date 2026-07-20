@@ -185,7 +185,7 @@ app.get("/api/mesas", verificarToken, async (req, res) => {
 });
 
 app.post("/api/mesas", verificarToken, verificarRol("ADMIN"), async (req, res) => {
-  const { numero, capacidad, qr_codigo } = req.body;
+  const { numero, capacidad, zona, qr_codigo } = req.body;
   if (!numero || !capacidad) {
     return res.status(400).json({ error: "Número y capacidad son requeridos." });
   }
@@ -194,8 +194,8 @@ app.post("/api/mesas", verificarToken, verificarRol("ADMIN"), async (req, res) =
   }
   try {
     const result = await pool.query(
-      "INSERT INTO mesas (numero, capacidad, qr_codigo) VALUES ($1, $2, $3) RETURNING *",
-      [numero, capacidad, qr_codigo || null]
+      "INSERT INTO mesas (numero, capacidad, zona, qr_codigo) VALUES ($1, $2, $3, $4) RETURNING *",
+      [numero, capacidad, zona || "Salón principal", qr_codigo || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -208,14 +208,14 @@ app.post("/api/mesas", verificarToken, verificarRol("ADMIN"), async (req, res) =
 
 app.put("/api/mesas/:id", verificarToken, verificarRol("ADMIN"), async (req, res) => {
   const { id } = req.params;
-  const { numero, capacidad, disponible, qr_codigo } = req.body;
+  const { numero, capacidad, disponible, zona, qr_codigo } = req.body;
   if (!numero || !capacidad) {
     return res.status(400).json({ error: "Número y capacidad son requeridos." });
   }
   try {
     const result = await pool.query(
-      "UPDATE mesas SET numero=$1, capacidad=$2, disponible=$3, qr_codigo=$4 WHERE id=$5 RETURNING *",
-      [numero, capacidad, disponible ?? true, qr_codigo || null, id]
+      "UPDATE mesas SET numero=$1, capacidad=$2, disponible=$3, zona=$4, qr_codigo=$5 WHERE id=$6 RETURNING *",
+      [numero, capacidad, disponible ?? true, zona || "Salón principal", qr_codigo || null, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Mesa no encontrada." });
