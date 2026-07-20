@@ -2181,9 +2181,19 @@ a {
   color: white;
 }
 
-.productos-menu-grid {
+.categoria-menu-seccion {
   max-width: 1200px;
-  margin: auto;
+  margin: 0 auto 28px;
+}
+
+.categoria-menu-titulo {
+  font-size: 20px;
+  margin: 0 0 14px;
+  padding-left: 2px;
+  color: #111827;
+}
+
+.productos-menu-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;

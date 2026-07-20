@@ -321,25 +321,46 @@ app.delete("/api/productos/:id", verificarToken, verificarRol("ADMIN"), async (r
 });
 
 // ==========================
-// MENU DIGITAL — pública, se accede vía QR (sin login)
+// MG-64: MENU DIGITAL — acceso público vía código QR (sin login)
+// Flujo: token en la URL -> validar que el QR exista y esté activo
+// -> identificar la mesa -> devolver el menú disponible por categorías.
+//
+// Nota de diseño: no existe una columna "activo" separada para el QR.
+// Un QR se considera "activo" si su token coincide con el qr_codigo
+// vigente de alguna mesa. Al regenerar el QR de una mesa (endpoint
+// POST /api/mesas/:id/qr) el token anterior se sobrescribe en la BD,
+// por lo que deja de existir y automáticamente queda invalidado: una
+// consulta con el token viejo caerá en el mismo caso "QR no válido".
 // ==========================
 app.get("/api/menu/:codigoQr", async (req, res) => {
   const { codigoQr } = req.params;
 
+  if (!codigoQr || !codigoQr.trim()) {
+    return res.status(400).json({ error: "Código QR no proporcionado." });
+  }
+
   try {
+    // 1 y 2: obtener el token y verificar que exista/esté activo,
+    // identificando a la vez la mesa asociada (3).
     const mesaResult = await pool.query(
       "SELECT * FROM mesas WHERE qr_codigo = $1",
-      [codigoQr]
+      [codigoQr.trim()]
     );
 
     if (mesaResult.rows.length === 0) {
-      return res.status(404).json({ error: "No se encontró la mesa asociada al código QR." });
+      // Cubre tanto "el QR nunca existió" como "el QR fue invalidado"
+      // (regenerado) o "la mesa ya no existe": en los tres casos ya
+      // no hay ninguna mesa con ese qr_codigo.
+      return res.status(404).json({
+        error: "Este código QR no es válido o ya no está activo. Solicita uno nuevo al personal del restaurante.",
+      });
     }
 
     const mesa = mesaResult.rows[0];
 
+    // 5 y 6: obtener solo productos disponibles, organizados por categoría.
     const productosResult = await pool.query(
-      "SELECT * FROM productos WHERE disponible = true ORDER BY id"
+      "SELECT * FROM productos WHERE disponible = true ORDER BY categoria, nombre"
     );
 
     res.json({
@@ -348,7 +369,7 @@ app.get("/api/menu/:codigoQr", async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al obtener el menú." });
+    res.status(500).json({ error: "Ocurrió un error al cargar el menú. Intenta nuevamente en unos segundos." });
   }
 });
 
