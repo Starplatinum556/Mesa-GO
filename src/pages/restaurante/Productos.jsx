@@ -135,7 +135,7 @@ function Productos() {
                 const disponible = producto.disponible;
 
                 return (
-                  <tr key={producto.id}>
+                  <tr key={producto.id} className={disponible ? "" : "fila-inactiva"}>
                     <td>
                       <div className="mesa-info">
                         <div className="mesa-icon azul">
@@ -159,7 +159,7 @@ function Productos() {
                     </td>
 
                     <td>
-                      <span className={disponible ? "estado-pill nuevo" : "estado-pill pendiente"}>
+                      <span className={disponible ? "estado-pill nuevo" : "estado-pill inactivo"}>
                         {disponible ? "Disponible" : "No disponible"}
                       </span>
                     </td>
@@ -175,7 +175,7 @@ function Productos() {
                         </button>
 
                         <button
-                          className="btn-ok"
+                          className={disponible ? "btn-alerta" : "btn-ok"}
                           onClick={() => manejarToggleDisponibilidad(producto.id)}
                         >
                           {disponible ? (
