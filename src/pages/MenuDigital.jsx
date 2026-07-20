@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, ShoppingCart } from "lucide-react";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { obtenerMenuPorCodigoQr } from "../services/menuService";
 
 function MenuDigital() {
   const { codigoQr } = useParams();
@@ -12,26 +13,26 @@ function MenuDigital() {
   const [categoria, setCategoria] = useState("Todas");
   const [carrito, setCarrito] = useState([]);
   const [cargando, setCargando] = useState(true);
+  // MG-64: mensaje persistente para los casos de error (QR inexistente,
+  // invalidado, mesa eliminada o falla interna). No basta con un toast
+  // porque el cliente puede tardar en mirar la pantalla tras escanear.
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const cargarMenu = async () => {
+      setCargando(true);
+      setError(null);
+
       try {
-        const respuesta = await fetch(
-          `http://localhost:4000/api/menu/${codigoQr}`
-        );
-
-        const datos = await respuesta.json();
-
-        if (!respuesta.ok) {
-          throw new Error(
-            datos.error || "No se pudo cargar el menú"
-          );
-        }
-
+        // MG-64: 1) token recibido desde la URL (codigoQr) -> 2)-4) el
+        // backend valida que exista/esté activo e identifica la mesa ->
+        // 5)-6) devuelve el menú disponible organizado por categorías.
+        const datos = await obtenerMenuPorCodigoQr(codigoQr);
         setMesa(datos.mesa);
         setProductos(datos.productos);
-      } catch (error) {
-        toast.error(error.message);
+      } catch (err) {
+        setError(err.message || "No se pudo cargar el menú.");
+        toast.error(err.message || "No se pudo cargar el menú.");
       } finally {
         setCargando(false);
       }
@@ -61,6 +62,22 @@ function MenuDigital() {
     });
   }, [productos, busqueda, categoria]);
 
+  // MG-64: el menú debe visualizarse organizado por categorías, no como
+  // una lista plana. Se agrupan los productos ya filtrados, respetando
+  // el orden en que llegaron desde el backend (categoria, nombre).
+  const productosPorCategoria = useMemo(() => {
+    const grupos = [];
+    for (const producto of productosFiltrados) {
+      let grupo = grupos.find((g) => g.categoria === producto.categoria);
+      if (!grupo) {
+        grupo = { categoria: producto.categoria, productos: [] };
+        grupos.push(grupo);
+      }
+      grupo.productos.push(producto);
+    }
+    return grupos;
+  }, [productosFiltrados]);
+
   const agregarProducto = (producto) => {
     setCarrito((anterior) => [...anterior, producto]);
     toast.success(`${producto.nombre} agregado`);
@@ -76,10 +93,12 @@ function MenuDigital() {
     return <p className="estado-carga">Cargando menú...</p>;
   }
 
-  if (!mesa) {
+  // MG-64: casos de error (QR inexistente/invalidado, mesa eliminada,
+  // error interno) — no se muestra el menú en ninguno de estos casos.
+  if (error || !mesa) {
     return (
       <p className="estado-error">
-        No se encontró la mesa asociada al código QR.
+        {error || "No se encontró la mesa asociada al código QR."}
       </p>
     );
   }
@@ -130,31 +149,37 @@ function MenuDigital() {
         </div>
       </section>
 
-      <section className="productos-menu-grid">
-        {productosFiltrados.map((producto) => (
-          <article className="producto-menu-card" key={producto.id}>
-            <div className="producto-menu-imagen">
-              {producto.nombre.charAt(0)}
-            </div>
+      {productosPorCategoria.map((grupo) => (
+        <section className="categoria-menu-seccion" key={grupo.categoria}>
+          <h2 className="categoria-menu-titulo">{grupo.categoria}</h2>
 
-            <div className="producto-menu-contenido">
-              <span>{producto.categoria}</span>
-              <h3>{producto.nombre}</h3>
-              <p>{producto.descripcion}</p>
+          <div className="productos-menu-grid">
+            {grupo.productos.map((producto) => (
+              <article className="producto-menu-card" key={producto.id}>
+                <div className="producto-menu-imagen">
+                  {producto.nombre.charAt(0)}
+                </div>
 
-              <div className="producto-menu-footer">
-                <strong>
-                  ${Number(producto.precio).toFixed(2)}
-                </strong>
+                <div className="producto-menu-contenido">
+                  <span>{producto.categoria}</span>
+                  <h3>{producto.nombre}</h3>
+                  <p>{producto.descripcion}</p>
 
-                <button onClick={() => agregarProducto(producto)}>
-                  + Agregar
-                </button>
-              </div>
-            </div>
-          </article>
-        ))}
-      </section>
+                  <div className="producto-menu-footer">
+                    <strong>
+                      ${Number(producto.precio).toFixed(2)}
+                    </strong>
+
+                    <button onClick={() => agregarProducto(producto)}>
+                      + Agregar
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
 
       {productosFiltrados.length === 0 && (
         <p className="estado-vacio">
