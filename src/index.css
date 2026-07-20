@@ -1125,6 +1125,22 @@ a {
   color: #111827;
 }
 
+.tabla-pedidos tbody tr.fila-inactiva {
+  background: #fafbfc;
+}
+
+.tabla-pedidos tbody tr.fila-inactiva .mesa-icon {
+  background: #cbd5e1 !important;
+}
+
+.tabla-pedidos tbody tr.fila-inactiva .mesa-info strong {
+  color: #94a3b8;
+}
+
+.tabla-pedidos tbody tr.fila-inactiva .mesa-info p {
+  color: #b6bfcb;
+}
+
 .mesa-info,
 .pago-info {
   display: flex;
@@ -1196,6 +1212,7 @@ a {
   padding: 8px 12px;
   font-weight: 900;
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .estado-pill::before {
@@ -1230,6 +1247,15 @@ a {
 
 .estado-pill.confirmado::before {
   background: #7c5ce4;
+}
+
+.estado-pill.inactivo {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.estado-pill.inactivo::before {
+  background: #94a3b8;
 }
 
 .acciones-pedido {
@@ -1807,12 +1833,13 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .acciones-tabla button,
 .btn-ver,
-.btn-ok {
+.btn-ok,
+.btn-alerta {
   border: none;
   min-height: 36px;
   padding: 0 14px;
@@ -1824,6 +1851,7 @@ a {
   justify-content: center;
   gap: 7px;
   font-size: 13px;
+  white-space: nowrap;
   transition: 0.2s ease;
 }
 
@@ -1845,8 +1873,18 @@ a {
   background: #dcfce7;
 }
 
+.btn-alerta {
+  background: #fff7e8;
+  color: #d97706;
+}
+
+.btn-alerta:hover {
+  background: #ffedc7;
+}
+
 .btn-ver svg,
-.btn-ok svg {
+.btn-ok svg,
+.btn-alerta svg {
   width: 16px;
   height: 16px;
   stroke-width: 2.4;

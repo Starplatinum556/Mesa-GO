@@ -6,6 +6,7 @@ const valoresIniciales = {
   zona: "Salón principal",
   capacidad: "",
   estado: "DISPONIBLE",
+  qr_codigo: "",
 };
 
 function MesaForm({ mesaEditar, onGuardar, onCancelar }) {
@@ -19,6 +20,7 @@ function MesaForm({ mesaEditar, onGuardar, onCancelar }) {
         zona: mesaEditar.zona ?? "Salón principal",
         capacidad: mesaEditar.capacidad ?? "",
         estado: mesaEditar.estado ?? "DISPONIBLE",
+        qr_codigo: mesaEditar.qr_codigo ?? "",
       });
     } else {
       setFormulario(valoresIniciales);
@@ -27,7 +29,6 @@ function MesaForm({ mesaEditar, onGuardar, onCancelar }) {
 
   const manejarCambio = (event) => {
     const { name, value } = event.target;
-
     setFormulario((anterior) => ({
       ...anterior,
       [name]: value,
@@ -54,12 +55,12 @@ function MesaForm({ mesaEditar, onGuardar, onCancelar }) {
 
     try {
       setGuardando(true);
-
       await onGuardar({
         numero: Number(formulario.numero),
         zona: formulario.zona.trim(),
         capacidad: Number(formulario.capacidad),
         estado: formulario.estado,
+        qr_codigo: formulario.qr_codigo || null,
       });
     } finally {
       setGuardando(false);
@@ -115,6 +116,19 @@ function MesaForm({ mesaEditar, onGuardar, onCancelar }) {
           <option value="RESERVADA">Reservada</option>
         </select>
       </label>
+
+      {formulario.qr_codigo && (
+        <label>
+          Código QR actual
+          <input
+            type="text"
+            name="qr_codigo"
+            value={formulario.qr_codigo}
+            readOnly
+            style={{ background: "#f5f5f5", color: "#888", fontSize: "0.8rem" }}
+          />
+        </label>
+      )}
 
       <div className="acciones-formulario">
         <button

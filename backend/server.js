@@ -376,6 +376,59 @@ app.get("/api/pedidos", verificarToken, verificarRol("ADMIN", "COCINERO", "DESPA
   }
 });
 
+// ==========================
+// QR: VER (MG-33)
+// ==========================
+app.get("/api/mesas/:id/qr", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query("SELECT qr_codigo FROM mesas WHERE id = $1", [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Mesa no encontrada." });
+    }
+
+    const token = result.rows[0].qr_codigo;
+    if (!token) {
+      return res.status(404).json({ error: "Esta mesa aún no tiene un código QR generado." });
+    }
+
+    const url = `http://localhost:5173/menu/${token}`;
+
+    const QRCode = require("qrcode");
+    const qrBase64 = await QRCode.toDataURL(url);
+
+    res.json({ token, url, qr: qrBase64 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener el QR." });
+  }
+});
+
+// ==========================
+// QR: GENERAR / REGENERAR (MG-33)
+// ==========================
+app.post("/api/mesas/:id/qr", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const token = `MESA-${id}-${Date.now()}`;
+    const url = `http://localhost:5173/menu/${token}`;
+
+    await pool.query(
+      "UPDATE mesas SET qr_codigo = $1 WHERE id = $2",
+      [token, id]
+    );
+
+    const QRCode = require("qrcode");
+    const qrBase64 = await QRCode.toDataURL(url);
+
+    res.json({ token, url, qr: qrBase64 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al generar el QR." });
+  }
+});
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Backend MesaGo corriendo en http://localhost:${PORT}`);
