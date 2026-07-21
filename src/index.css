@@ -2160,9 +2160,16 @@ a {
 }
 
 .categorias-menu {
+  position: sticky;
+  top: 12px;
+  z-index: 5;
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  padding: 10px;
+  background: rgba(243, 246, 251, 0.85);
+  backdrop-filter: blur(6px);
+  border-radius: 15px;
 }
 
 .categorias-menu button {
@@ -2173,6 +2180,11 @@ a {
   color: #475569;
   font-weight: 800;
   cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.categorias-menu button:hover {
+  transform: translateY(-1px);
 }
 
 .categorias-menu button.activo {
@@ -2187,10 +2199,25 @@ a {
 }
 
 .categoria-menu-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 20px;
   margin: 0 0 14px;
   padding-left: 2px;
   color: #111827;
+}
+
+.categoria-menu-icono {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.categoria-menu-contador {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
 }
 
 .productos-menu-grid {
@@ -2205,6 +2232,12 @@ a {
   border-radius: 20px;
   border: 1px solid #e8edf4;
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.producto-menu-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
 }
 
 .producto-menu-imagen {
@@ -2213,8 +2246,7 @@ a {
   place-items: center;
   background: linear-gradient(135deg, #1565d8, #55a5ff);
   color: white;
-  font-size: 54px;
-  font-weight: 900;
+  font-size: 48px;
 }
 
 .producto-menu-contenido {
