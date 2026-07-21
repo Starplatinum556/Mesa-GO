@@ -36,11 +36,10 @@ function Login() {
       sessionStorage.setItem("token", datos.token);
       sessionStorage.setItem("usuarioMesaGo", JSON.stringify(datos.usuario));
 
-      if (datos.usuario.rol === "ADMIN") {
-        navigate("/restaurante");
-      } else {
-        navigate("/");
-      }
+      // MG-59: los 3 roles (ADMIN, COCINERO, DESPACHADOR) entran al
+      // panel interno; RestauranteLayout decide qué ve cada uno.
+      navigate("/restaurante");
+      
     } catch (err) {
       console.error(err);
       alert(

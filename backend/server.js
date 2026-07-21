@@ -175,7 +175,7 @@ app.get("/api/seed-passwords", async (req, res) => {
 // ==========================
 // MESAS — solo ADMIN (MG-59)
 // ==========================
-app.get("/api/mesas", verificarToken, async (req, res) => {
+app.get("/api/mesas", verificarToken, verificarRol("ADMIN"), async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM mesas ORDER BY numero");
     res.json(result.rows);
@@ -242,7 +242,7 @@ app.delete("/api/mesas/:id", verificarToken, verificarRol("ADMIN"), async (req, 
 // ==========================
 // PRODUCTOS (MG-59 + MG-55)
 // ==========================
-app.get("/api/productos", verificarToken, async (req, res) => {
+app.get("/api/productos", verificarToken, verificarRol("ADMIN"), async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM productos ORDER BY id");
     res.json(result.rows);
