@@ -41,10 +41,10 @@ app.post("/api/login", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT u.id, u.nombre, u.correo, u.password, u.restaurante_id, r.nombre AS rol
-       FROM usuarios u
-       JOIN roles r ON u.rol_id = r.id
-       WHERE u.correo = $1`,
+      `SELECT u.id, u.nombre, u.correo, u.password, u.restaurante_id, u.estado, r.nombre AS rol
+      FROM usuarios u
+      JOIN roles r ON u.rol_id = r.id
+      WHERE u.correo = $1`,
       [correo]
     );
 
@@ -57,6 +57,11 @@ app.post("/api/login", async (req, res) => {
     const passwordValida = await bcrypt.compare(password, usuario.password);
     if (!passwordValida) {
       return res.status(401).json({ error: "Correo o contraseña incorrectos." });
+    }
+
+    // Verificar que el usuario esté activo
+    if (usuario.estado === "INACTIVO") {
+      return res.status(401).json({ error: "Tu cuenta está desactivada. Contacta al administrador." });
     }
 
     const token = jwt.sign(
@@ -474,6 +479,121 @@ app.get("/api/menu/:codigoQr", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error interno al cargar el menú." });
+  }
+});
+
+// ==========================
+// PERSONAL (MG-36)
+// ==========================
+app.get("/api/personal", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT u.id, u.nombre, u.correo, u.estado, r.nombre AS rol
+       FROM usuarios u
+       JOIN roles r ON u.rol_id = r.id
+       WHERE u.restaurante_id = $1
+       AND r.nombre IN ('COCINERO', 'DESPACHADOR')
+       ORDER BY r.nombre, u.nombre`,
+      [req.usuario.restaurante_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: "Error al obtener personal." });
+  }
+});
+
+app.post("/api/personal", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { nombre, correo, password, rol } = req.body;
+  if (!nombre || !correo || !password || !rol) {
+    return res.status(400).json({ error: "Todos los campos son requeridos." });
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(correo)) {
+    return res.status(400).json({ error: "El formato del correo no es válido." });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres." });
+  }
+  if (!["COCINERO", "DESPACHADOR"].includes(rol)) {
+    return res.status(400).json({ error: "Rol no válido. Solo se permite COCINERO o DESPACHADOR." });
+  }
+  try {
+    const existe = await pool.query("SELECT id FROM usuarios WHERE correo = $1", [correo]);
+    if (existe.rows.length > 0) {
+      return res.status(400).json({ error: "Ya existe un usuario con ese correo." });
+    }
+    const rolResult = await pool.query("SELECT id FROM roles WHERE nombre = $1", [rol]);
+    const rol_id = rolResult.rows[0].id;
+    const hash = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      `INSERT INTO usuarios (nombre, correo, password, rol_id, restaurante_id, estado)
+       VALUES ($1, $2, $3, $4, $5, 'ACTIVO') RETURNING id, nombre, correo, estado`,
+      [nombre, correo, hash, rol_id, req.usuario.restaurante_id]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al crear empleado." });
+  }
+});
+
+app.put("/api/personal/:id", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { id } = req.params;
+  const { nombre, correo, rol } = req.body;
+  if (!nombre || !correo || !rol) {
+    return res.status(400).json({ error: "Nombre, correo y rol son requeridos." });
+  }
+  if (!["COCINERO", "DESPACHADOR"].includes(rol)) {
+    return res.status(400).json({ error: "Rol no válido." });
+  }
+  try {
+    const rolResult = await pool.query("SELECT id FROM roles WHERE nombre = $1", [rol]);
+    const rol_id = rolResult.rows[0].id;
+    const result = await pool.query(
+      `UPDATE usuarios SET nombre=$1, correo=$2, rol_id=$3
+       WHERE id=$4 AND restaurante_id=$5 RETURNING id, nombre, correo, estado`,
+      [nombre, correo, rol_id, id, req.usuario.restaurante_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Empleado no encontrado." });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: "Error al actualizar empleado." });
+  }
+});
+
+app.patch("/api/personal/:id/estado", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `UPDATE usuarios
+       SET estado = CASE WHEN estado = 'ACTIVO' THEN 'INACTIVO' ELSE 'ACTIVO' END
+       WHERE id=$1 AND restaurante_id=$2 RETURNING id, nombre, estado`,
+      [id, req.usuario.restaurante_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Empleado no encontrado." });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: "Error al cambiar estado." });
+  }
+});
+
+app.delete("/api/personal/:id", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      "DELETE FROM usuarios WHERE id=$1 AND restaurante_id=$2 RETURNING id",
+      [id, req.usuario.restaurante_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Empleado no encontrado." });
+    }
+    res.json({ mensaje: "Empleado eliminado correctamente." });
+  } catch (err) {
+    res.status(500).json({ error: "Error al eliminar empleado." });
   }
 });
 

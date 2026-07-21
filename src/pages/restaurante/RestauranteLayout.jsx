@@ -9,16 +9,16 @@ import {
   Table2,
   Truck,
   User,
+  Users,
 } from "lucide-react";
 import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
 import { obtenerUsuarioSesion } from "../../components/RutaProtegida";
 
-// MG-59: qué ve cada rol en el menú lateral. Un rol solo aparece aquí
-// si el ticket lo autoriza explícitamente para ese módulo.
 const MENU_POR_ROL = {
   ADMIN: [
     { to: "/restaurante/mesas", icon: Table2, label: "Mesas" },
     { to: "/restaurante/productos", icon: Package, label: "Productos" },
+    { to: "/restaurante/personal", icon: Users, label: "Personal" },
     { to: "/restaurante/reportes", icon: FileBarChart, label: "Reportes" },
     { to: "/restaurante/configuracion", icon: Settings, label: "Configuración" },
   ],
@@ -40,7 +40,6 @@ function RestauranteLayout() {
   const navigate = useNavigate();
   const usuario = obtenerUsuarioSesion();
 
-  // MG-59: sin sesión válida no se entra a ninguna pantalla interna.
   if (!usuario) {
     return <Navigate to="/login" replace />;
   }
@@ -60,7 +59,6 @@ function RestauranteLayout() {
           <div className="admin-logo-icon">
             <QrCode size={22} />
           </div>
-
           <h2>
             Mesa<span>Go</span>
           </h2>
@@ -103,7 +101,6 @@ function RestauranteLayout() {
               <div className="admin-user-icon">
                 <User size={19} />
               </div>
-
               <div>
                 <strong>{usuario.nombre}</strong>
                 <p>{NOMBRE_ROL[usuario.rol] || usuario.rol}</p>
