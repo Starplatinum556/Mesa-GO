@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { CheckCircle2, Eye, PackageCheck, Truck } from "lucide-react";
 
 const pedidosEntrega = [
@@ -24,12 +25,30 @@ const pedidosEntrega = [
   },
 ];
 
+// MG-59: "Listos para entregar" y "Entregados" viven en una sola
+// pantalla (Entregas) con un filtro interno, en vez de 2 secciones
+// separadas del menú lateral.
 function Entregas() {
+  const [filtro, setFiltro] = useState("todos");
+
+  const pendientes = pedidosEntrega.filter(
+    (p) => p.estado === "Listo para entregar"
+  ).length;
+  const entregados = pedidosEntrega.filter(
+    (p) => p.estado === "Entregado"
+  ).length;
+
+  const pedidosFiltrados = pedidosEntrega.filter((pedido) => {
+    if (filtro === "pendientes") return pedido.estado === "Listo para entregar";
+    if (filtro === "entregados") return pedido.estado === "Entregado";
+    return true;
+  });
+
   return (
     <section className="modulo-admin">
       <div className="recepcion-header">
-        <h1>Listos para Entregar</h1>
-        <p>Pedidos preparados por cocina y pendientes de entrega al cliente.</p>
+        <h1>Entregas</h1>
+        <p>Pedidos preparados por cocina, listos o ya entregados al cliente.</p>
       </div>
 
       <section className="metricas-grid tres-columnas">
@@ -39,7 +58,7 @@ function Entregas() {
           </div>
           <div>
             <p>Listos para entregar</p>
-            <h2>3</h2>
+            <h2>{pendientes}</h2>
             <span>Esperando despacho</span>
           </div>
         </article>
@@ -50,7 +69,7 @@ function Entregas() {
           </div>
           <div>
             <p>Entregados hoy</p>
-            <h2>21</h2>
+            <h2>{entregados}</h2>
             <span>Pedidos cerrados</span>
           </div>
         </article>
@@ -67,6 +86,29 @@ function Entregas() {
         </article>
       </section>
 
+      <section className="barra-control">
+        <div className="tabs-pedidos">
+          <button
+            className={filtro === "todos" ? "activo" : ""}
+            onClick={() => setFiltro("todos")}
+          >
+            Todos <span>{pedidosEntrega.length}</span>
+          </button>
+          <button
+            className={filtro === "pendientes" ? "activo" : ""}
+            onClick={() => setFiltro("pendientes")}
+          >
+            Pendientes <span>{pendientes}</span>
+          </button>
+          <button
+            className={filtro === "entregados" ? "activo" : ""}
+            onClick={() => setFiltro("entregados")}
+          >
+            Entregados <span>{entregados}</span>
+          </button>
+        </div>
+      </section>
+
       <section className="tabla-pedidos-card">
         <table className="tabla-pedidos">
           <thead>
@@ -81,7 +123,7 @@ function Entregas() {
           </thead>
 
           <tbody>
-            {pedidosEntrega.map((pedido) => (
+            {pedidosFiltrados.map((pedido) => (
               <tr key={pedido.codigo}>
                 <td>
                   <strong>{pedido.codigo}</strong>
@@ -120,6 +162,12 @@ function Entregas() {
             ))}
           </tbody>
         </table>
+
+        {pedidosFiltrados.length === 0 && (
+          <div className="tabla-footer">
+            <p>No hay pedidos en este filtro.</p>
+          </div>
+        )}
       </section>
     </section>
   );

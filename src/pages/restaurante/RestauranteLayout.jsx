@@ -1,23 +1,58 @@
 import {
   Bell,
   ChefHat,
-  ClipboardList,
-  Clock,
   FileBarChart,
-  Home,
-  LayoutDashboard,
   LogOut,
   Package,
   QrCode,
   Settings,
-  ShoppingBag,
   Table2,
   Truck,
   User,
 } from "lucide-react";
-import { NavLink, Outlet, Link } from "react-router-dom";
+import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
+import { obtenerUsuarioSesion } from "../../components/RutaProtegida";
+
+// MG-59: qué ve cada rol en el menú lateral. Un rol solo aparece aquí
+// si el ticket lo autoriza explícitamente para ese módulo.
+const MENU_POR_ROL = {
+  ADMIN: [
+    { to: "/restaurante/mesas", icon: Table2, label: "Mesas" },
+    { to: "/restaurante/productos", icon: Package, label: "Productos" },
+    { to: "/restaurante/reportes", icon: FileBarChart, label: "Reportes" },
+    { to: "/restaurante/configuracion", icon: Settings, label: "Configuración" },
+  ],
+  COCINERO: [
+    { to: "/restaurante/cocina", icon: ChefHat, label: "En cocina" },
+  ],
+  DESPACHADOR: [
+    { to: "/restaurante/entregas", icon: Truck, label: "Entregas" },
+  ],
+};
+
+const NOMBRE_ROL = {
+  ADMIN: "Administrador",
+  COCINERO: "Cocinero",
+  DESPACHADOR: "Despachador",
+};
 
 function RestauranteLayout() {
+  const navigate = useNavigate();
+  const usuario = obtenerUsuarioSesion();
+
+  // MG-59: sin sesión válida no se entra a ninguna pantalla interna.
+  if (!usuario) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const opcionesMenu = MENU_POR_ROL[usuario.rol] || [];
+
+  const cerrarSesion = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("usuarioMesaGo");
+    navigate("/login");
+  };
+
   return (
     <main className="admin-dashboard">
       <aside className="admin-sidebar">
@@ -32,53 +67,12 @@ function RestauranteLayout() {
         </div>
 
         <nav className="admin-menu">
-          <NavLink to="/restaurante" end>
-            <ClipboardList size={20} />
-            <span>Recepción</span>
-            <small>8</small>
-          </NavLink>
-
-          <NavLink to="/restaurante/cocina">
-            <ChefHat size={20} />
-            <span>En cocina</span>
-            <small>5</small>
-          </NavLink>
-
-          <NavLink to="/restaurante/entregas">
-            <ShoppingBag size={20} />
-            <span>Listos para entregar</span>
-            <small>3</small>
-          </NavLink>
-
-          <NavLink to="/restaurante/entregas">
-            <Truck size={20} />
-            <span>Entregados</span>
-          </NavLink>
-
-          <NavLink to="/restaurante/reportes">
-            <Clock size={20} />
-            <span>Historial</span>
-          </NavLink>
-
-          <NavLink to="/restaurante/mesas">
-            <Table2 size={20} />
-            <span>Mesas</span>
-          </NavLink>
-
-          <NavLink to="/restaurante/productos">
-            <Package size={20} />
-            <span>Productos</span>
-          </NavLink>
-
-          <NavLink to="/restaurante/reportes">
-            <FileBarChart size={20} />
-            <span>Reportes</span>
-          </NavLink>
-
-          <NavLink to="/restaurante/configuracion">
-            <Settings size={20} />
-            <span>Configuración</span>
-          </NavLink>
+          {opcionesMenu.map(({ to, icon: Icono, label }) => (
+            <NavLink to={to} key={to}>
+              <Icono size={20} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
         </nav>
 
         <div className="admin-sidebar-footer">
@@ -87,12 +81,12 @@ function RestauranteLayout() {
             <strong>Conectado</strong>
           </div>
 
-          <p>Sucursal Centro</p>
+          <p>{NOMBRE_ROL[usuario.rol] || usuario.rol}</p>
 
-          <Link to="/" className="salir-admin">
+          <button type="button" className="salir-admin" onClick={cerrarSesion}>
             <LogOut size={16} />
-            Volver al inicio
-          </Link>
+            Cerrar sesión
+          </button>
         </div>
       </aside>
 
@@ -101,14 +95,8 @@ function RestauranteLayout() {
           <div></div>
 
           <div className="admin-top-actions">
-            <button className="top-action qr-action">
-              <QrCode size={18} />
-              Pedido desde QR
-            </button>
-
             <button className="top-icon">
               <Bell size={19} />
-              <span>3</span>
             </button>
 
             <button className="admin-user">
@@ -117,8 +105,8 @@ function RestauranteLayout() {
               </div>
 
               <div>
-                <strong>Administrador</strong>
-                <p>Turno: Mañana</p>
+                <strong>{usuario.nombre}</strong>
+                <p>{NOMBRE_ROL[usuario.rol] || usuario.rol}</p>
               </div>
             </button>
           </div>
