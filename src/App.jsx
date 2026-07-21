@@ -8,16 +8,17 @@ import Cocina from "./pages/restaurante/Cocina";
 import Entregas from "./pages/restaurante/Entregas";
 import Mesas from "./pages/restaurante/Mesas";
 import Productos from "./pages/restaurante/Productos";
+import Personal from "./pages/restaurante/Personal";
 import Reportes from "./pages/restaurante/Reportes";
 import Configuracion from "./pages/restaurante/Configuracion";
 import { Toaster } from "react-hot-toast";
 import MenuDigital from "./pages/MenuDigital";
-import RutaProtegida, { obtenerUsuarioSesion, rutaInicioPorRol } from "./components/RutaProtegida";
+import RutaProtegida, {
+  obtenerUsuarioSesion,
+  rutaInicioPorRol,
+} from "./components/RutaProtegida";
 import "./index.css";
 
-// MG-59: la raíz de /restaurante ya no tiene una pantalla propia
-// (Recepción salió del menú de todos los roles); redirige a cada
-// usuario a la sección que sí le corresponde.
 function InicioRestaurante() {
   const usuario = obtenerUsuarioSesion();
   return <Navigate to={rutaInicioPorRol(usuario?.rol)} replace />;
@@ -26,16 +27,16 @@ function InicioRestaurante() {
 function App() {
   return (
     <BrowserRouter>
-    <Toaster
-  position="top-right"
-  toastOptions={{
-    duration: 3000,
-    style: {
-      borderRadius: "14px",
-      fontWeight: "700",
-    },
-  }}
-/>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            borderRadius: "14px",
+            fontWeight: "700",
+          },
+        }}
+      />
       <Routes>
         {/* Pantallas públicas */}
         <Route path="/" element={<Inicio />} />
@@ -43,7 +44,7 @@ function App() {
         <Route path="/registro" element={<Registro />} />
         <Route path="/menu/:codigoQr" element={<MenuDigital />} />
 
-        {/* Panel interno del restaurante — MG-59: cada ruta valida el rol */}
+        {/* Panel interno del restaurante */}
         <Route path="/restaurante" element={<RestauranteLayout />}>
           <Route index element={<InicioRestaurante />} />
 
@@ -79,6 +80,15 @@ function App() {
             element={
               <RutaProtegida roles={["ADMIN"]}>
                 <Productos />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
+            path="personal"
+            element={
+              <RutaProtegida roles={["ADMIN"]}>
+                <Personal />
               </RutaProtegida>
             }
           />
