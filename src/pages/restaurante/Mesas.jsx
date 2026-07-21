@@ -1,6 +1,6 @@
 import { apiFetch } from "../../api";
 import { useEffect, useState } from "react";
-import { Plus, QrCode, Table2, Trash2, Edit, Users } from "lucide-react";
+import { Plus, QrCode, Table2, Trash2, Edit, Users, MapPin } from "lucide-react";
 import toast from "react-hot-toast";
 import { obtenerMesas, crearMesa, actualizarMesa, eliminarMesa } from "../../services/mesasService";
 import Modal from "../../components/Modal";
@@ -54,7 +54,6 @@ function Mesas() {
         ...datos,
         disponible: datos.estado === "DISPONIBLE",
       };
-
       if (mesaEditar) {
         await actualizarMesa(mesaEditar.id, payload);
         toast.success("Mesa actualizada correctamente.");
@@ -103,11 +102,7 @@ function Mesas() {
         toast.error(datos.error || "Error al generar QR.");
         return;
       }
-      // Actualizamos la mesa con el nuevo qr_codigo
-      setQrData({ 
-        ...datos, 
-        mesa: { ...mesa, qr_codigo: datos.token } 
-      });
+      setQrData({ ...datos, mesa: { ...mesa, qr_codigo: datos.token } });
       setQrModalAbierto(true);
       toast.success("QR generado correctamente.");
     } catch (err) {
@@ -140,7 +135,15 @@ function Mesas() {
 
       {cargando && <p>Cargando mesas...</p>}
 
-      {!cargando && (
+      {!cargando && mesas.length === 0 && (
+        <div style={{ textAlign: "center", padding: "3rem", color: "#9ca3af" }}>
+          <Table2 size={48} style={{ marginBottom: "1rem", opacity: 0.4 }} />
+          <p style={{ fontSize: "1.1rem", fontWeight: "600" }}>No tienes mesas registradas</p>
+          <p style={{ fontSize: "0.9rem" }}>Haz clic en "Agregar mesa" para comenzar</p>
+        </div>
+      )}
+
+      {!cargando && mesas.length > 0 && (
         <>
           <section className="metricas-grid tres-columnas">
             <article className="metrica-card">
@@ -171,7 +174,7 @@ function Mesas() {
               </div>
               <div>
                 <p>QR activos</p>
-                <h2>{totalMesas}</h2>
+                <h2>{mesas.filter((m) => m.qr_codigo).length}</h2>
                 <span>Códigos generados</span>
               </div>
             </article>
@@ -200,8 +203,8 @@ function Mesas() {
                       Capacidad: {mesa.capacidad}
                     </span>
                     <span>
-                      <QrCode size={16} />
-                      {mesa.qr_codigo ? "QR asignado" : "Sin QR"}
+                      <MapPin size={16} />
+                      {mesa.zona || "Salón principal"}
                     </span>
                   </div>
 
@@ -209,7 +212,7 @@ function Mesas() {
                     <button
                       className="btn-ver"
                       onClick={() => mesa.qr_codigo ? manejarVerQr(mesa) : manejarGenerarQr(mesa)}
-                      title={mesa.qr_codigo ? "Ver QR" : "Generar QR"}
+                      title={mesa.qr_codigo ? "Ver QR actual" : "Generar QR"}
                     >
                       <QrCode size={15} />
                       {mesa.qr_codigo ? "Ver QR" : "Generar QR"}
