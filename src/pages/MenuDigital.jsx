@@ -4,6 +4,32 @@ import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { obtenerMenuPorCodigoQr } from "../services/menuService";
 
+// MG-34: pequeño toque visual para reconocer cada categoría de un
+// vistazo. Si la categoría no está mapeada, usa un ícono genérico.
+const ICONOS_CATEGORIA = {
+  entradas: "🥗",
+  "platos fuertes": "🍽️",
+  principales: "🍽️",
+  bebidas: "🥤",
+  postres: "🍰",
+  sopas: "🍲",
+  ensaladas: "🥗",
+  pizzas: "🍕",
+  hamburguesas: "🍔",
+  pastas: "🍝",
+  mariscos: "🦐",
+  carnes: "🥩",
+  desayunos: "🍳",
+  cafe: "☕",
+  café: "☕",
+  snacks: "🍟",
+  vegetariano: "🥦",
+};
+
+function obtenerIconoCategoria(categoria = "") {
+  return ICONOS_CATEGORIA[categoria.trim().toLowerCase()] || "🍴";
+}
+
 function MenuDigital() {
   const { codigoQr } = useParams();
 
@@ -151,13 +177,22 @@ function MenuDigital() {
 
       {productosPorCategoria.map((grupo) => (
         <section className="categoria-menu-seccion" key={grupo.categoria}>
-          <h2 className="categoria-menu-titulo">{grupo.categoria}</h2>
+          <h2 className="categoria-menu-titulo">
+            <span className="categoria-menu-icono" aria-hidden="true">
+              {obtenerIconoCategoria(grupo.categoria)}
+            </span>
+            {grupo.categoria}
+            <span className="categoria-menu-contador">
+              {grupo.productos.length}{" "}
+              {grupo.productos.length === 1 ? "producto" : "productos"}
+            </span>
+          </h2>
 
           <div className="productos-menu-grid">
             {grupo.productos.map((producto) => (
               <article className="producto-menu-card" key={producto.id}>
                 <div className="producto-menu-imagen">
-                  {producto.nombre.charAt(0)}
+                  {obtenerIconoCategoria(producto.categoria)}
                 </div>
 
                 <div className="producto-menu-contenido">
