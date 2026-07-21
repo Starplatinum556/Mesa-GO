@@ -42,10 +42,10 @@ app.post("/api/login", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT u.id, u.nombre, u.correo, u.password, r.nombre AS rol
-       FROM usuarios u
-       JOIN roles r ON u.rol_id = r.id
-       WHERE u.correo = $1`,
+      `SELECT u.id, u.nombre, u.correo, u.password, u.restaurante_id, r.nombre AS rol
+      FROM usuarios u
+      JOIN roles r ON u.rol_id = r.id
+      WHERE u.correo = $1`,
       [correo]
     );
 
@@ -63,7 +63,13 @@ app.post("/api/login", async (req, res) => {
 
     // MG-54: Generar token JWT
     const token = jwt.sign(
-      { id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, rol: usuario.rol },
+      {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        correo: usuario.correo,
+        rol: usuario.rol,
+        restaurante_id: usuario.restaurante_id
+      },
       process.env.JWT_SECRET,
       { expiresIn: "8h" }
     );
@@ -75,7 +81,8 @@ app.post("/api/login", async (req, res) => {
         nombre: usuario.nombre,
         correo: usuario.correo,
         rol: usuario.rol,
-      },
+        restaurante_id: usuario.restaurante_id
+      }
     });
   } catch (err) {
     console.error(err);
@@ -84,14 +91,17 @@ app.post("/api/login", async (req, res) => {
 });
 
 // ==========================
-// RUTA PUBLICA: REGISTRO (MG-54)
+// RUTA PUBLICA: REGISTRO (MG-54) // REGISTRO ADMIN + RESTAURANTE (MG-21)
 // ==========================
 app.post("/api/registro", async (req, res) => {
-  const { nombre, correo, password, rol } = req.body;
+  const {
+    nombre, correo, password,
+    nombreRestaurante, direccion, telefono, ruc, numeroMesas
+  } = req.body;
 
-  // MG-38: Validaciones
-  if (!nombre || !correo || !password || !rol) {
-    return res.status(400).json({ error: "Todos los campos son requeridos." });
+  // Validaciones
+  if (!nombre || !correo || !password) {
+    return res.status(400).json({ error: "Nombre, correo y contraseña son requeridos." });
   }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(correo)) {
@@ -100,43 +110,61 @@ app.post("/api/registro", async (req, res) => {
   if (password.length < 6) {
     return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres." });
   }
+  if (!nombreRestaurante || !direccion || !telefono) {
+    return res.status(400).json({ error: "Nombre, dirección y teléfono del restaurante son requeridos." });
+  }
 
+  const client = await pool.connect();
   try {
-    // Verificar si el correo ya existe
-    const existe = await pool.query(
+    await client.query("BEGIN");
+
+    // Verificar correo duplicado
+    const existe = await client.query(
       "SELECT id FROM usuarios WHERE correo = $1", [correo]
     );
     if (existe.rows.length > 0) {
+      await client.query("ROLLBACK");
       return res.status(400).json({ error: "Ya existe una cuenta con ese correo." });
     }
 
-    // Obtener el rol_id según el nombre del rol
-    const rolMap = {
-      CLIENTE: 2,
-      ADMIN: 1,
-      COCINERO: 3,
-      DESPACHADOR: 4,
-    };
-    const rol_id = rolMap[rol.toUpperCase()];
-    if (!rol_id) {
-      return res.status(400).json({ error: "Rol no válido." });
+    // 1. Crear restaurante
+    const resRestaurante = await client.query(
+      `INSERT INTO restaurantes (nombre, direccion, telefono, ruc)
+       VALUES ($1, $2, $3, $4) RETURNING id`,
+      [nombreRestaurante, direccion, telefono, ruc || null]
+    );
+    const restaurante_id = resRestaurante.rows[0].id;
+
+    // 2. Crear usuario ADMIN
+    const hash = await bcrypt.hash(password, 10);
+    const resUsuario = await client.query(
+      `INSERT INTO usuarios (nombre, correo, password, rol_id, restaurante_id)
+       VALUES ($1, $2, $3, 1, $4) RETURNING id, nombre, correo`,
+      [nombre, correo, hash, restaurante_id]
+    );
+    const usuario = resUsuario.rows[0];
+
+    // 3. Crear mesas iniciales si se especificó un número
+    await client.query("COMMIT");
+    for (let i = 1; i <= cantMesas; i++) {
+      await client.query(
+        `INSERT INTO mesas (numero, capacidad, restaurante_id, zona)
+         VALUES ($1, 4, $2, 'Salón principal')`,
+        [i, restaurante_id]
+      );
     }
 
-    // Encriptar contraseña
-    const hash = await bcrypt.hash(password, 10);
+    await client.query("COMMIT");
 
-    // Insertar usuario
-    const result = await pool.query(
-      `INSERT INTO usuarios (nombre, correo, password, rol_id)
-       VALUES ($1, $2, $3, $4) RETURNING id, nombre, correo`,
-      [nombre, correo, hash, rol_id]
-    );
-
-    const usuario = result.rows[0];
-
-    // Generar token JWT
+    // 4. Generar JWT con restaurante_id
     const token = jwt.sign(
-      { id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, rol: rol.toUpperCase() },
+      {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        correo: usuario.correo,
+        rol: "ADMIN",
+        restaurante_id
+      },
       process.env.JWT_SECRET,
       { expiresIn: "8h" }
     );
@@ -147,12 +175,16 @@ app.post("/api/registro", async (req, res) => {
         id: usuario.id,
         nombre: usuario.nombre,
         correo: usuario.correo,
-        rol: rol.toUpperCase(),
-      },
+        rol: "ADMIN",
+        restaurante_id
+      }
     });
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error(err);
-    res.status(500).json({ error: "Error en el servidor." });
+    res.status(500).json({ error: "Error al crear la cuenta. Intenta de nuevo." });
+  } finally {
+    client.release();
   }
 });
 
