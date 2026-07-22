@@ -59,9 +59,14 @@ function RestauranteLayout() {
           <div className="admin-logo-icon">
             <QrCode size={22} />
           </div>
-          <h2>
-            Mesa<span>Go</span>
-          </h2>
+          <div>
+            <h2>
+              Mesa<span>Go</span>
+            </h2>
+            {usuario.restaurante_nombre && (
+              <p className="admin-logo-restaurante">{usuario.restaurante_nombre}</p>
+            )}
+          </div>
         </div>
 
         <nav className="admin-menu">
@@ -90,7 +95,10 @@ function RestauranteLayout() {
 
       <section className="admin-main">
         <header className="admin-topbar">
-          <div></div>
+          <div className="admin-topbar-titulo">
+            <h1>{usuario.restaurante_nombre || "Mi restaurante"}</h1>
+            <p>Panel de {NOMBRE_ROL[usuario.rol] || usuario.rol}</p>
+          </div>
 
           <div className="admin-top-actions">
             <button className="top-icon">

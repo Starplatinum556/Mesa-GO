@@ -41,9 +41,11 @@ app.post("/api/login", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT u.id, u.nombre, u.correo, u.password, u.restaurante_id, u.estado, r.nombre AS rol
+      `SELECT u.id, u.nombre, u.correo, u.password, u.restaurante_id, u.estado,
+              r.nombre AS rol, res.nombre AS restaurante_nombre
       FROM usuarios u
       JOIN roles r ON u.rol_id = r.id
+      JOIN restaurantes res ON u.restaurante_id = res.id
       WHERE u.correo = $1`,
       [correo]
     );
@@ -84,6 +86,9 @@ app.post("/api/login", async (req, res) => {
         correo: usuario.correo,
         rol: usuario.rol,
         restaurante_id: usuario.restaurante_id,
+        // MG-61: nombre real del restaurante (tabla restaurantes),
+        // para que el frontend lo muestre sin tener que pedirlo aparte.
+        restaurante_nombre: usuario.restaurante_nombre,
       },
     });
   } catch (err) {
@@ -166,6 +171,9 @@ app.post("/api/registro", async (req, res) => {
         correo: usuario.correo,
         rol: "ADMIN",
         restaurante_id,
+        // MG-61: ya lo tenemos en memoria de este mismo request,
+        // no hace falta otra consulta a la BD.
+        restaurante_nombre: nombreRestaurante,
       },
     });
   } catch (err) {
