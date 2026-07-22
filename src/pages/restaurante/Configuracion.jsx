@@ -1,6 +1,82 @@
+import { useEffect, useState } from "react";
 import { Building2, Clock, Mail, Phone, Save } from "lucide-react";
+import toast from "react-hot-toast";
+import { actualizarRestaurante, obtenerRestaurante } from "../../services/restauranteService";
 
+const VALORES_INICIALES = {
+  nombre: "",
+  sucursal: "",
+  direccion: "",
+  correo: "",
+  telefono: "",
+  responsable: "",
+  hora_apertura: "",
+  hora_cierre: "",
+  estado: "Abierto",
+};
+
+// El input type="time" necesita "HH:MM"; Postgres puede devolver "HH:MM:SS".
+function aFormatoHora(valor) {
+  return valor ? valor.slice(0, 5) : "";
+}
+
+// MG-47: ficha real del restaurante del admin autenticado (tabla
+// restaurantes), reemplaza el formulario que antes tenía todo
+// hardcodeado con defaultValue y no guardaba nada.
 function Configuracion() {
+  const [datos, setDatos] = useState(VALORES_INICIALES);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    const cargar = async () => {
+      try {
+        const restaurante = await obtenerRestaurante();
+        setDatos({
+          nombre: restaurante.nombre || "",
+          sucursal: restaurante.sucursal || "",
+          direccion: restaurante.direccion || "",
+          correo: restaurante.correo || "",
+          telefono: restaurante.telefono || "",
+          responsable: restaurante.responsable || "",
+          hora_apertura: aFormatoHora(restaurante.hora_apertura),
+          hora_cierre: aFormatoHora(restaurante.hora_cierre),
+          estado: restaurante.estado || "Abierto",
+        });
+      } catch (err) {
+        setError(err.message || "No se pudo cargar la información del restaurante.");
+      } finally {
+        setCargando(false);
+      }
+    };
+    cargar();
+  }, []);
+
+  const actualizarCampo = (campo) => (evento) => {
+    setDatos((anterior) => ({ ...anterior, [campo]: evento.target.value }));
+  };
+
+  const guardarCambios = async () => {
+    setGuardando(true);
+    try {
+      await actualizarRestaurante(datos);
+      toast.success("Los datos del restaurante se guardaron correctamente");
+    } catch (err) {
+      toast.error(err.message || "No se pudieron guardar los cambios.");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  if (cargando) {
+    return <p className="estado-carga">Cargando configuración...</p>;
+  }
+
+  if (error) {
+    return <p className="estado-error">{error}</p>;
+  }
+
   return (
     <section className="modulo-admin">
       <div className="recepcion-header fila-header">
@@ -9,9 +85,13 @@ function Configuracion() {
           <p>Datos generales del local, horarios y preferencias básicas del sistema.</p>
         </div>
 
-        <button className="btn-accion-principal btn-header">
+        <button
+          className="btn-accion-principal btn-header"
+          onClick={guardarCambios}
+          disabled={guardando}
+        >
           <Save size={18} />
-          Guardar cambios
+          {guardando ? "Guardando..." : "Guardar cambios"}
         </button>
       </div>
 
@@ -25,20 +105,32 @@ function Configuracion() {
             </div>
           </div>
 
-          <form className="config-form">
+          <form className="config-form" onSubmit={(e) => e.preventDefault()}>
             <label>
               Nombre del restaurante
-              <input type="text" defaultValue="Local MesaGo" />
+              <input
+                type="text"
+                value={datos.nombre}
+                onChange={actualizarCampo("nombre")}
+              />
             </label>
 
             <label>
               Sucursal
-              <input type="text" defaultValue="Sucursal Centro" />
+              <input
+                type="text"
+                value={datos.sucursal}
+                onChange={actualizarCampo("sucursal")}
+              />
             </label>
 
             <label>
               Dirección
-              <input type="text" defaultValue="Latacunga, Cotopaxi" />
+              <input
+                type="text"
+                value={datos.direccion}
+                onChange={actualizarCampo("direccion")}
+              />
             </label>
           </form>
         </article>
@@ -52,20 +144,28 @@ function Configuracion() {
             </div>
           </div>
 
-          <form className="config-form">
+          <form className="config-form" onSubmit={(e) => e.preventDefault()}>
             <label>
               Hora de apertura
-              <input type="time" defaultValue="08:00" />
+              <input
+                type="time"
+                value={datos.hora_apertura}
+                onChange={actualizarCampo("hora_apertura")}
+              />
             </label>
 
             <label>
               Hora de cierre
-              <input type="time" defaultValue="22:00" />
+              <input
+                type="time"
+                value={datos.hora_cierre}
+                onChange={actualizarCampo("hora_cierre")}
+              />
             </label>
 
             <label>
               Estado del local
-              <select defaultValue="Abierto">
+              <select value={datos.estado} onChange={actualizarCampo("estado")}>
                 <option>Abierto</option>
                 <option>Cerrado</option>
                 <option>En mantenimiento</option>
@@ -83,20 +183,32 @@ function Configuracion() {
             </div>
           </div>
 
-          <form className="config-form">
+          <form className="config-form" onSubmit={(e) => e.preventDefault()}>
             <label>
               Correo electrónico
-              <input type="email" defaultValue="admin@mesago.com" />
+              <input
+                type="email"
+                value={datos.correo}
+                onChange={actualizarCampo("correo")}
+              />
             </label>
 
             <label>
               Teléfono
-              <input type="text" defaultValue="0999999999" />
+              <input
+                type="text"
+                value={datos.telefono}
+                onChange={actualizarCampo("telefono")}
+              />
             </label>
 
             <label>
               Responsable
-              <input type="text" defaultValue="Administrador" />
+              <input
+                type="text"
+                value={datos.responsable}
+                onChange={actualizarCampo("responsable")}
+              />
             </label>
           </form>
         </article>
@@ -112,7 +224,7 @@ function Configuracion() {
 
           <div className="estado-sistema">
             <span className="estado-pill nuevo">Conectado</span>
-            <p>El panel se encuentra preparado para futura conexión con backend y base de datos.</p>
+            <p>Los datos de esta página ya se leen y se guardan en la base de datos.</p>
           </div>
         </article>
       </section>
