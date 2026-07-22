@@ -597,6 +597,73 @@ app.delete("/api/personal/:id", verificarToken, verificarRol("ADMIN"), async (re
   }
 });
 
+// ==========================
+// CONFIGURACIÓN DEL RESTAURANTE (MG-47)
+// Ficha del restaurante del admin autenticado: nombre, sucursal,
+// dirección, contacto, horario y estado del local. Nada de esto se
+// comparte entre restaurantes — siempre se filtra por restaurante_id.
+// ==========================
+app.get("/api/restaurante", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, nombre, sucursal, direccion, ruc, correo, telefono,
+              responsable, hora_apertura, hora_cierre, estado
+       FROM restaurantes WHERE id = $1`,
+      [req.usuario.restaurante_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Restaurante no encontrado." });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener la información del restaurante." });
+  }
+});
+
+app.put("/api/restaurante", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const {
+    nombre, sucursal, direccion, correo, telefono,
+    responsable, hora_apertura, hora_cierre, estado,
+  } = req.body;
+
+  if (!nombre || !direccion) {
+    return res.status(400).json({ error: "El nombre y la dirección son requeridos." });
+  }
+  if (correo) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(correo)) {
+      return res.status(400).json({ error: "El formato del correo no es válido." });
+    }
+  }
+  if (estado && !["Abierto", "Cerrado", "En mantenimiento"].includes(estado)) {
+    return res.status(400).json({ error: "Estado del local no válido." });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE restaurantes
+       SET nombre=$1, sucursal=$2, direccion=$3, correo=$4, telefono=$5,
+           responsable=$6, hora_apertura=$7, hora_cierre=$8, estado=$9
+       WHERE id=$10
+       RETURNING id, nombre, sucursal, direccion, ruc, correo, telefono,
+                 responsable, hora_apertura, hora_cierre, estado`,
+      [
+        nombre, sucursal || null, direccion, correo || null, telefono || null,
+        responsable || null, hora_apertura || null, hora_cierre || null,
+        estado || "Abierto", req.usuario.restaurante_id,
+      ]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Restaurante no encontrado." });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al actualizar la información del restaurante." });
+  }
+});
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Backend MesaGo corriendo en http://localhost:${PORT}`);
