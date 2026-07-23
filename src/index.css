@@ -1810,16 +1810,131 @@ a {
   box-shadow: 0 0 0 4px rgba(0, 100, 232, 0.1);
 }
 
-.estado-sistema {
+.config-resumen-grid {
   display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 14px;
 }
 
-.estado-sistema p {
-  margin: 0;
+.config-resumen-item {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+  background: #f8fafc;
+  border: 1px solid #eef2f8;
+  border-radius: 14px;
+  padding: 16px 10px;
+  color: #0064e8;
+}
+
+.config-resumen-item strong {
+  font-size: 24px;
+  color: #111827;
+  font-weight: 900;
+}
+
+.config-resumen-item span {
+  font-size: 12px;
   color: #64748b;
-  line-height: 1.6;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+/* MG-63: campos de configuración — modo lectura y modo edición */
+
+.config-campo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid #eef2f8;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.config-campo-editable {
+  align-items: flex-start;
+  cursor: default;
+}
+
+.config-campo-icono {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+}
+
+.config-campo-icono.azul {
+  background: #e6f0ff;
+  color: #0064e8;
+}
+
+.config-campo-icono.morado {
+  background: #f1e9ff;
+  color: #7c3aed;
+}
+
+.config-campo-texto {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+}
+
+.config-campo-texto > span:first-child {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.config-campo-texto strong {
+  font-size: 15px;
+  color: #111827;
+  font-weight: 800;
+}
+
+.config-campo-texto input,
+.config-campo-texto select {
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: white;
+  color: #111827;
+  font-weight: 700;
+  outline: none;
+}
+
+.config-campo-texto input:focus,
+.config-campo-texto select:focus {
+  border-color: #0064e8;
+  box-shadow: 0 0 0 4px rgba(0, 100, 232, 0.1);
+}
+
+.config-toolbar-editar {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-secundario {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid #dbe3ef;
+  border-radius: 999px;
+  background: white;
+  color: #334155;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-secundario:hover {
+  border-color: #0064e8;
+  color: #0064e8;
 }
 
 /* Ajustes responsive módulos */
