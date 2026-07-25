@@ -201,12 +201,147 @@ app.get("/api/seed-passwords", async (req, res) => {
 });
 
 // ==========================
-// MESAS (MG-32, MG-47)
+// ZONAS (MG-66)
+// Cada restaurante administra sus propias zonas donde se ubican las
+// mesas. El nombre es único por restaurante (constraint
+// zonas_nombre_restaurante_id_key), y no se puede eliminar una zona
+// que tenga mesas asociadas (se valida por zona_id, la FK real en
+// mesas, no por texto).
+// ==========================
+app.get("/api/zonas", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT z.id, z.nombre, z.descripcion, z.estado,
+              COUNT(m.id)::int AS mesas
+       FROM zonas z
+       LEFT JOIN mesas m ON m.zona_id = z.id
+       WHERE z.restaurante_id = $1
+       GROUP BY z.id
+       ORDER BY z.nombre`,
+      [req.usuario.restaurante_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener zonas." });
+  }
+});
+
+app.post("/api/zonas", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { nombre, descripcion, estado } = req.body;
+  if (!nombre || !nombre.trim()) {
+    return res.status(400).json({ error: "El nombre de la zona es requerido." });
+  }
+  if (estado && !["activa", "inactiva"].includes(estado)) {
+    return res.status(400).json({ error: "Estado no válido." });
+  }
+  try {
+    const result = await pool.query(
+      `INSERT INTO zonas (nombre, descripcion, estado, restaurante_id)
+       VALUES ($1, $2, $3, $4) RETURNING id, nombre, descripcion, estado`,
+      [nombre.trim(), descripcion || null, estado || "activa", req.usuario.restaurante_id]
+    );
+    res.status(201).json({ ...result.rows[0], mesas: 0 });
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(400).json({ error: "Ya existe una zona con ese nombre en tu restaurante." });
+    }
+    console.error(err);
+    res.status(500).json({ error: "Error al crear zona." });
+  }
+});
+
+app.put("/api/zonas/:id", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { id } = req.params;
+  const { nombre, descripcion, estado } = req.body;
+  if (!nombre || !nombre.trim()) {
+    return res.status(400).json({ error: "El nombre de la zona es requerido." });
+  }
+  if (estado && !["activa", "inactiva"].includes(estado)) {
+    return res.status(400).json({ error: "Estado no válido." });
+  }
+  try {
+    const result = await pool.query(
+      `UPDATE zonas SET nombre=$1, descripcion=$2, estado=COALESCE($3, estado)
+       WHERE id=$4 AND restaurante_id=$5
+       RETURNING id, nombre, descripcion, estado`,
+      [nombre.trim(), descripcion || null, estado || null, id, req.usuario.restaurante_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Zona no encontrada." });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(400).json({ error: "Ya existe una zona con ese nombre en tu restaurante." });
+    }
+    console.error(err);
+    res.status(500).json({ error: "Error al actualizar zona." });
+  }
+});
+
+// Alterna activa/inactiva. Una zona inactiva sigue existiendo (y sus
+// mesas también), simplemente deja de ofrecerse como opción al
+// crear/editar mesas nuevas desde el frontend.
+app.patch("/api/zonas/:id/estado", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `UPDATE zonas
+       SET estado = CASE WHEN estado = 'activa' THEN 'inactiva' ELSE 'activa' END
+       WHERE id=$1 AND restaurante_id=$2
+       RETURNING id, nombre, estado`,
+      [id, req.usuario.restaurante_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Zona no encontrada." });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al cambiar el estado de la zona." });
+  }
+});
+
+app.delete("/api/zonas/:id", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const enUso = await pool.query(
+      "SELECT COUNT(*)::int AS total FROM mesas WHERE zona_id=$1 AND restaurante_id=$2",
+      [id, req.usuario.restaurante_id]
+    );
+    if (enUso.rows[0].total > 0) {
+      return res.status(400).json({
+        error: `No se puede eliminar: ${enUso.rows[0].total} mesa(s) usan esta zona.`,
+      });
+    }
+    const result = await pool.query(
+      "DELETE FROM zonas WHERE id=$1 AND restaurante_id=$2 RETURNING id",
+      [id, req.usuario.restaurante_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Zona no encontrada." });
+    }
+    res.json({ mensaje: "Zona eliminada correctamente." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al eliminar zona." });
+  }
+});
+
+// ==========================
+// MESAS (MG-32, MG-47, MG-66)
+// A partir de MG-66, la zona se referencia por zona_id (FK real
+// hacia la tabla zonas) en vez del texto libre que se usaba antes.
 // ==========================
 app.get("/api/mesas", verificarToken, verificarRol("ADMIN"), async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM mesas WHERE restaurante_id = $1 ORDER BY numero",
+      `SELECT m.*, z.nombre AS zona_nombre
+       FROM mesas m
+       LEFT JOIN zonas z ON z.id = m.zona_id
+       WHERE m.restaurante_id = $1
+       ORDER BY m.numero`,
       [req.usuario.restaurante_id]
     );
     res.json(result.rows);
@@ -216,7 +351,7 @@ app.get("/api/mesas", verificarToken, verificarRol("ADMIN"), async (req, res) =>
 });
 
 app.post("/api/mesas", verificarToken, verificarRol("ADMIN"), async (req, res) => {
-  const { numero, capacidad, zona } = req.body;
+  const { numero, capacidad, zona_id } = req.body;
   if (!numero || !capacidad) {
     return res.status(400).json({ error: "Número y capacidad son requeridos." });
   }
@@ -224,9 +359,18 @@ app.post("/api/mesas", verificarToken, verificarRol("ADMIN"), async (req, res) =
     return res.status(400).json({ error: "Número y capacidad deben ser números." });
   }
   try {
+    if (zona_id) {
+      const zona = await pool.query(
+        "SELECT id FROM zonas WHERE id=$1 AND restaurante_id=$2",
+        [zona_id, req.usuario.restaurante_id]
+      );
+      if (zona.rows.length === 0) {
+        return res.status(400).json({ error: "La zona seleccionada no es válida." });
+      }
+    }
     const result = await pool.query(
-      "INSERT INTO mesas (numero, capacidad, zona, restaurante_id) VALUES ($1, $2, $3, $4) RETURNING *",
-      [numero, capacidad, zona || "Salón principal", req.usuario.restaurante_id]
+      "INSERT INTO mesas (numero, capacidad, zona_id, restaurante_id) VALUES ($1, $2, $3, $4) RETURNING *",
+      [numero, capacidad, zona_id || null, req.usuario.restaurante_id]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -239,15 +383,24 @@ app.post("/api/mesas", verificarToken, verificarRol("ADMIN"), async (req, res) =
 
 app.put("/api/mesas/:id", verificarToken, verificarRol("ADMIN"), async (req, res) => {
   const { id } = req.params;
-  const { numero, capacidad, disponible, zona, qr_codigo } = req.body;
+  const { numero, capacidad, disponible, zona_id, qr_codigo } = req.body;
   if (!numero || !capacidad) {
     return res.status(400).json({ error: "Número y capacidad son requeridos." });
   }
   try {
+    if (zona_id) {
+      const zona = await pool.query(
+        "SELECT id FROM zonas WHERE id=$1 AND restaurante_id=$2",
+        [zona_id, req.usuario.restaurante_id]
+      );
+      if (zona.rows.length === 0) {
+        return res.status(400).json({ error: "La zona seleccionada no es válida." });
+      }
+    }
     const result = await pool.query(
-      `UPDATE mesas SET numero=$1, capacidad=$2, disponible=$3, zona=$4, qr_codigo=$5
+      `UPDATE mesas SET numero=$1, capacidad=$2, disponible=$3, zona_id=$4, qr_codigo=$5
        WHERE id=$6 AND restaurante_id=$7 RETURNING *`,
-      [numero, capacidad, disponible ?? true, zona || "Salón principal", qr_codigo || null, id, req.usuario.restaurante_id]
+      [numero, capacidad, disponible ?? true, zona_id || null, qr_codigo || null, id, req.usuario.restaurante_id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Mesa no encontrada." });
@@ -571,17 +724,18 @@ app.get("/api/pedidos", verificarToken, verificarRol("ADMIN", "COCINERO", "DESPA
   try {
     const result = await pool.query(`
       SELECT
-        p.id, p.codigo, m.numero AS mesa, m.zona, p.estado,
+        p.id, p.codigo, m.numero AS mesa, z.nombre AS zona, p.estado,
         p.metodo_pago, p.total, p.creado_en, p.actualizado_en,
         STRING_AGG(pr.nombre || ' x' || dp.cantidad, ', ') AS productos,
         COUNT(dp.id) AS cantidad_productos
       FROM pedidos p
       JOIN mesas m ON p.mesa_id = m.id
+      LEFT JOIN zonas z ON z.id = m.zona_id
       JOIN detalle_pedido dp ON dp.pedido_id = p.id
       JOIN productos pr ON pr.id = dp.producto_id
       WHERE p.restaurante_id = $1
         AND p.pago_validado = true
-      GROUP BY p.id, m.numero, m.zona
+      GROUP BY p.id, m.numero, z.nombre
       ORDER BY p.creado_en DESC
     `, [req.usuario.restaurante_id]);
     res.json(result.rows);
@@ -597,10 +751,11 @@ app.get("/api/pedidos/:id", verificarToken, verificarRol("ADMIN", "COCINERO", "D
   const { id } = req.params;
   try {
     const pedidoResult = await pool.query(
-      `SELECT p.id, p.codigo, m.numero AS mesa, m.zona, p.estado, p.metodo_pago,
+      `SELECT p.id, p.codigo, m.numero AS mesa, z.nombre AS zona, p.estado, p.metodo_pago,
               p.total, p.creado_en, p.observaciones
        FROM pedidos p
        JOIN mesas m ON p.mesa_id = m.id
+       LEFT JOIN zonas z ON z.id = m.zona_id
        WHERE p.id = $1 AND p.restaurante_id = $2 AND p.pago_validado = true`,
       [id, req.usuario.restaurante_id]
     );
@@ -704,7 +859,10 @@ app.get("/api/menu/:codigoQr", async (req, res) => {
 
   try {
     const resMesa = await pool.query(
-      "SELECT id, numero, zona, capacidad, restaurante_id FROM mesas WHERE qr_codigo = $1",
+      `SELECT m.id, m.numero, z.nombre AS zona, m.capacidad, m.restaurante_id
+       FROM mesas m
+       LEFT JOIN zonas z ON z.id = m.zona_id
+       WHERE m.qr_codigo = $1`,
       [codigoQr]
     );
 
