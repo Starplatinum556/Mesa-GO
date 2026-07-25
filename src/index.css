@@ -697,151 +697,183 @@ a {
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  background: #ffffff;
-  border-right: 1px solid #edf1f7;
-  padding: 22px 18px;
+  background: #0f1b30;
+  border-right: none;
+  padding: 22px 16px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 10px;
 }
 
 .admin-logo {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 0 4px 18px;
-  border-bottom: 1px solid #f0f3f8;
+  gap: 12px;
+  padding: 4px 6px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 12px;
 }
 
 .admin-logo-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
   display: grid;
   place-items: center;
-  color: #ffffff;
-  background: linear-gradient(135deg, #1d7cff, #0064e8);
-  box-shadow: 0 10px 24px rgba(0, 100, 232, 0.25);
+  color: #ff7a1a;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
 }
 
 .admin-logo h2 {
   margin: 0;
-  font-size: 30px;
+  font-size: 22px;
   font-weight: 900;
-  color: #1565d8;
-  letter-spacing: -1px;
+  color: #ffffff;
+  letter-spacing: -0.5px;
 }
 
 .admin-logo h2 span {
-  color: #16a34a;
+  color: #ff7a1a;
 }
 
 .admin-logo-restaurante {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 800;
-  color: #64748b;
+  margin: 3px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8b96ab;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 160px;
+  max-width: 150px;
 }
 
 .admin-menu {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .admin-menu a {
   min-height: 46px;
-  padding: 0 12px;
-  border-radius: 13px;
+  padding: 0 14px;
+  border-radius: 12px;
   display: grid;
-  grid-template-columns: 24px 1fr auto;
+  grid-template-columns: 22px 1fr auto;
   align-items: center;
-  gap: 10px;
-  color: #5b6475;
-  font-weight: 800;
+  gap: 12px;
+  color: #8b96ab;
+  font-weight: 700;
   font-size: 14px;
 }
 
 .admin-menu a svg {
-  stroke-width: 2.2;
+  stroke-width: 2.1;
 }
 
 .admin-menu a small {
-  width: 25px;
-  height: 25px;
+  width: 24px;
+  height: 24px;
   border-radius: 999px;
   display: grid;
   place-items: center;
-  background: #f1f5f9;
-  color: #64748b;
+  background: rgba(255, 255, 255, 0.08);
+  color: #c3cbda;
   font-weight: 900;
+  font-size: 11px;
 }
 
 .admin-menu a:hover {
-  background: #f3f8ff;
-  color: #0866e8;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e6ee;
 }
 
 .admin-menu a.active {
-  background: #eef6ff;
-  color: #0866e8;
+  background: #ff7a1a;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(255, 122, 26, 0.35);
 }
-
+ 
 .admin-menu a.active svg {
-  color: #0866e8;
+  color: #ffffff;
+}
+ 
+.admin-menu a.active small {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
 }
 
-.admin-menu a.active small {
-  background: #dcecff;
-  color: #0866e8;
+/* MG-40: ítem del menú "Mi Perfil" — se ve igual que los demás pero
+   es un <button> sin acción; se implementará en otra historia. */
+.admin-menu-inerte {
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  color: #8b96ab;
+  font-weight: 700;
+  font-size: 14px;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.admin-menu-inerte svg {
+  stroke-width: 2.1;
+}
+ 
+.admin-menu-inerte:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e6ee;
+}
+ 
+.admin-menu-divisor {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 10px 8px;
 }
 
 .admin-sidebar-footer {
   margin-top: auto;
-  background: #ffffff;
-  border: 1px solid #e8edf4;
-  border-radius: 18px;
-  padding: 16px;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
+  padding: 16px 14px 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
-
+ 
 .conexion {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #16a34a;
-  font-size: 13px;
-  margin-bottom: 8px;
+  display: none; /* el mockup ya no muestra el indicador "Conectado" */
 }
-
-.conexion span {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #16a34a;
-}
-
-.conexion strong {
-  font-weight: 900;
-}
-
+ 
 .admin-sidebar-footer p {
-  margin: 0 0 14px;
-  color: #64748b;
-  font-weight: 700;
+  display: none; /* el rol ya se muestra en el topbar junto al usuario */
 }
-
+ 
 .salir-admin {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: none;
+  outline: none;
+  margin: 0;
+  width: 100%;
+  cursor: pointer;
+ 
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: #1565d8;
-  font-weight: 900;
-  font-size: 13px;
+  gap: 10px;
+  color: #8b96ab; /* mismo gris que .admin-menu a inactivo */
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.salir-admin svg {
+  stroke-width: 2.1;
+  color: #8b96ab;
 }
 
 .admin-main {
@@ -849,13 +881,83 @@ a {
   min-width: 0;
 }
 
+.salir-admin:hover,
+.salir-admin:hover svg {
+  color: #ffffff;
+}
+
 .admin-topbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 4px;
 }
 
+.admin-topbar-titulo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+ 
+.admin-topbar-icono {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+ 
+.admin-topbar-titulo h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 900;
+  color: #111827;
+}
+ 
+.admin-topbar-titulo p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 600;
+}
+ 
+.admin-fecha-hora {
+  text-align: right;
+}
+ 
+.admin-fecha-hora strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+  color: #111827;
+}
+ 
+.admin-fecha-hora span {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+ 
+.admin-user-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: #f1f5f9;
+  color: #45546a;
+}
+ 
+.admin-user-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .admin-top-actions {
   display: flex;
   align-items: center;
@@ -1005,6 +1107,10 @@ a {
 
 .metrica-icon.morado {
   background: #7c5ce4;
+}
+
+.metrica-icon.rojo {
+  background: #dc2626;
 }
 
 .metrica-card p {
@@ -1399,24 +1505,7 @@ a {
   }
 
   .admin-topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
-  }
-
-  .admin-topbar-titulo h1 {
-    margin: 0;
-    font-size: 21px;
-    font-weight: 900;
-    color: #111827;
-  }
-
-  .admin-topbar-titulo p {
-    margin: 2px 0 0;
-    font-size: 13px;
-    color: #64748b;
-    font-weight: 700;
+    justify-content: flex-start;
   }
 
   .admin-top-actions {
@@ -1471,6 +1560,10 @@ a {
 
 .tres-columnas {
   grid-template-columns: repeat(3, 1fr);
+}
+
+.dos-columnas {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .cards-operativas {
@@ -2136,6 +2229,82 @@ a {
   font-weight: 800;
 }
 
+/* MG-40: disponibilidad de productos desde el panel de cocina */
+
+.btn-marcar-agotado,
+.btn-marcar-disponible {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-marcar-agotado {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.btn-marcar-disponible {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+/* MG-40: detalle de pedido dentro del modal */
+
+.detalle-pedido {
+  display: grid;
+  gap: 18px;
+}
+
+.detalle-pedido-resumen {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-weight: 700;
+  color: #475569;
+}
+
+.detalle-pedido-items {
+  display: grid;
+  gap: 10px;
+}
+
+.detalle-pedido-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.detalle-pedido-item > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  font-weight: 700;
+}
+
+.detalle-pedido-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 12px 0;
+  border-top: 1px solid #eef2f8;
+  font-size: 17px;
+  font-weight: 900;
+  color: #111827;
+}
+
 .formulario-modal input,
 .formulario-modal select,
 .formulario-modal textarea {
@@ -2519,5 +2688,611 @@ a {
 
   .acciones-mesa button {
     width: 100%;
+  }
+}
+
+/* ============================================================
+   MG-40 v4 — Panel de Cocina y Productos agotados (rediseño)
+   ============================================================ */
+
+.cuatro-columnas {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1100px) {
+  .cuatro-columnas {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Divisor + item secundario del sidebar (ej. "Mi Perfil") */
+
+.admin-menu-divisor {
+  height: 1px;
+  background: #2a3548;
+  margin: 10px 6px;
+}
+
+/* Placeholder de secciones aún no implementadas */
+
+.placeholder-seccion {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+  color: #94a3b8;
+  background: white;
+  border: 1px dashed #e2e8f0;
+  border-radius: 18px;
+  padding: 60px 24px;
+}
+
+.placeholder-seccion p {
+  max-width: 360px;
+  font-weight: 700;
+}
+
+/* Paginación: la base (.paginacion / .paginacion button / .activo)
+   ya existía; solo agrego lo que faltaba. */
+
+.paginacion-puntos {
+  color: #94a3b8;
+  font-weight: 900;
+  padding: 0 4px;
+}
+
+.paginacion button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tabla-footer-paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* Disponibilidad de productos: filtros, imagen placeholder, badges */
+
+.disponibilidad-filtros {
+  display: flex;
+  gap: 14px;
+  margin: 18px 0;
+  flex-wrap: wrap;
+}
+
+.disponibilidad-filtros .busqueda-menu {
+  flex: 1;
+  min-width: 220px;
+}
+
+.filtro-categoria {
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 13px;
+  padding: 0 16px;
+  min-height: 46px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.tabla-productos-disponibilidad td {
+  vertical-align: middle;
+}
+
+.celda-producto {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.producto-imagen-espacio {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border-radius: 12px;
+  border: 1.5px dashed #cbd5e1;
+  background: #f8fafc;
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+}
+
+.celda-producto strong {
+  display: block;
+  color: #111827;
+}
+
+.celda-producto p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.celda-fecha {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-categoria {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.badge-categoria.azul {
+  background: #e6f0ff;
+  color: #0064e8;
+}
+
+.badge-categoria.morado {
+  background: #f1e9ff;
+  color: #7c3aed;
+}
+
+.badge-categoria.verde {
+  background: #e3faf0;
+  color: #16a34a;
+}
+
+.badge-categoria.naranja {
+  background: #fff1e6;
+  color: #ea7c1e;
+}
+
+.badge-categoria.rosado {
+  background: #ffe6f0;
+  color: #db2777;
+}
+
+.badge-estado {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.badge-estado.disponible {
+  background: #e3faf0;
+  color: #16a34a;
+}
+
+.badge-estado.agotado {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.banner-info {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-top: 22px;
+}
+
+.banner-info-icono {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: white;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 13px;
+}
+
+.banner-info strong {
+  display: block;
+  color: #92400e;
+  margin-bottom: 3px;
+}
+
+.banner-info p {
+  margin: 0;
+  color: #a16207;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ========================= */
+/* TÍTULO Y TABS DE LA SECCIÓN "Pedidos" */
+/* ========================= */
+.pedidos-titulo {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 16px;
+}
+
+.tabs-pedidos {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 14px;
+}
+
+.tabs-pedidos button {
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  color: #666;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.tabs-pedidos button span {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.tabs-pedidos button.activo {
+  background: #fff3ea;
+  border-color: #ff7a00;
+  color: #ff7a00;
+  font-weight: 600;
+}
+
+.tabs-pedidos button:hover:not(.activo) {
+  border-color: #ccc;
+}
+
+/* ========================= */
+/* SUBTEXTO DE ZONA EN LA TABLA (debajo de "Mesa X") */
+/* ========================= */
+.fila-subtexto {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+}
+
+/* ========================= */
+/* PÍLDORAS DE ESTADO */
+/* ========================= */
+.estado-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f1f1;
+  color: #555;
+}
+
+.estado-pill.nuevo {
+  background: #fef3e2;
+  color: #b45309;
+}
+
+.estado-pill.preparacion {
+  background: #ffe9d9;
+  color: #c2410c;
+}
+
+.estado-pill.listo {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+/* ========================= */
+/* CONTENEDOR GENERAL */
+/* ========================= */
+.tabla-pedidos-card {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden; /* nunca debe salirse ni generar scroll de página */
+}
+
+.contenedor-pedidos {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ========================= */
+/* 🧾 LISTA DE PEDIDOS */
+/* ========================= */
+.lista-pedidos {
+  width: 100%;
+  min-width: 0; /* evita que la tabla empuje el contenedor y lo desborde */
+  box-sizing: border-box;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.contenedor-pedidos.con-detalle .lista-pedidos {
+  width: 62%;
+  transform: translateX(-6px);
+  opacity: 0.97;
+}
+
+.tabla-pedidos {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.tabla-pedidos td,
+.tabla-pedidos th {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ========================= */
+/* 📦 PANEL DETALLE */
+/* ========================= */
+.detalle-pedido {
+  width: 38%;
+  min-width: 0;
+  box-sizing: border-box;
+  opacity: 0;
+  pointer-events: none;
+
+  display: flex;
+  flex-direction: column;
+  height: 640px;
+  max-height: 80vh;
+
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+
+  /* Curva tipo "Uber": arranca rápido y desacelera suave, sin escalado brusco */
+  transform: translateX(36px);
+  transition:
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.05s,
+    opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.05s,
+    box-shadow 0.3s ease;
+}
+
+.contenedor-pedidos.con-detalle .detalle-pedido {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.14);
+}
+
+.detalle-pedido:focus {
+  outline: none;
+}
+.detalle-pedido:focus-visible {
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.14), 0 0 0 2px #ff7a00;
+}
+
+/* HEADER */
+.detalle-header {
+  padding: 20px 20px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.detalle-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+}
+
+.detalle-header button {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #999;
+  cursor: pointer;
+}
+
+/* FILA CÓDIGO + PILL DE ESTADO */
+.detalle-codigo-fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px 16px;
+  flex-shrink: 0;
+}
+
+.detalle-codigo-fila strong {
+  font-size: 20px;
+  color: #111;
+}
+
+/* INFO EN 4 COLUMNAS */
+.detalle-info {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 0 20px 16px;
+  border-bottom: 1px solid #f2f2f2;
+  flex-shrink: 0;
+}
+
+.detalle-info div {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  color: #888;
+}
+
+.detalle-info strong {
+  color: #111;
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.detalle-info .estado-pill {
+  margin-top: 4px;
+  width: fit-content;
+}
+
+/* PARTE FIJA: Observaciones + título "Orden" + encabezado "Cantidad" NO se mueven */
+.detalle-fijo {
+  padding: 16px 20px 0;
+  flex-shrink: 0;
+}
+
+.detalle-observaciones {
+  margin-bottom: 16px;
+}
+
+.detalle-orden-header {
+  border-bottom: 1px solid #f2f2f2;
+  padding-bottom: 10px;
+}
+
+.detalle-orden-titulo {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+}
+
+/* PARTE SCROLLEABLE: solo los productos */
+.detalle-body {
+  padding: 12px 20px 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.detalle-scroll {
+  overflow-y: auto;
+}
+
+.detalle-categoria {
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+/* SECCIONES / CATEGORÍAS DE LA ORDEN */
+.detalle-seccion {
+  margin-bottom: 18px;
+}
+
+.detalle-seccion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detalle-seccion-header span {
+  font-size: 12px;
+  color: #999;
+}
+
+.detalle-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  color: #b42318;
+  font-size: 14px;
+}
+
+/* ITEMS */
+.detalle-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+  border-bottom: 1px dashed #f2f2f2;
+}
+
+.detalle-item span {
+  color: #333;
+}
+
+.detalle-item strong {
+  color: #111;
+}
+
+/* FOOTER */
+.detalle-footer {
+  padding: 16px 20px 20px;
+  flex-shrink: 0;
+}
+
+/* BOTÓN PRINCIPAL */
+.btn-accion-principal {
+  width: 100%;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(90deg, #ff4d00, #ff7a00);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-accion-principal:hover {
+  opacity: 0.9;
+}
+
+.btn-accion-principal:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* BOTÓN "Detalles" en la tabla */
+.btn-ver-detalle {
+  border: 1px solid #ff7a00;
+  color: #ff7a00;
+  background: #fff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-ver-detalle:hover {
+  background: #fff3ea;
+}
+
+/* ========================= */
+/* RESPONSIVE: apila en pantallas angostas */
+/* ========================= */
+@media (max-width: 900px) {
+  .contenedor-pedidos {
+    flex-direction: column;
+  }
+
+  .contenedor-pedidos.con-detalle .lista-pedidos {
+    width: 100%;
+    transform: none;
+  }
+
+  .detalle-pedido {
+    width: 100%;
+    height: 70vh;
+  }
+
+  .detalle-info {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

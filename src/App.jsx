@@ -5,6 +5,8 @@ import Registro from "./pages/Registro";
 
 import RestauranteLayout from "./pages/restaurante/RestauranteLayout";
 import Cocina from "./pages/restaurante/Cocina";
+import DisponibilidadProductos from "./pages/restaurante/DisponibilidadProductos";
+import MiPerfil from "./pages/restaurante/MiPerfil";
 import Entregas from "./pages/restaurante/Entregas";
 import Mesas from "./pages/restaurante/Mesas";
 import Productos from "./pages/restaurante/Productos";
@@ -53,6 +55,24 @@ function App() {
             element={
               <RutaProtegida roles={["COCINERO"]}>
                 <Cocina />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
+            path="disponibilidad"
+            element={
+              <RutaProtegida roles={["COCINERO"]}>
+                <DisponibilidadProductos />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
+            path="mi-perfil"
+            element={
+              <RutaProtegida roles={["COCINERO"]}>
+                <MiPerfil />
               </RutaProtegida>
             }
           />

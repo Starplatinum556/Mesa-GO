@@ -15,13 +15,20 @@ export async function obtenerPedidos() {
   return procesarRespuesta(respuesta);
 }
 
-// MG-47: mueve un pedido al siguiente estado de su etapa
-// (Cocina -> "Listo", Despachador -> "Entregado"). El backend valida
-// que el rol autenticado pueda hacer esa transición.
-export async function actualizarEstadoPedido(id, estado) {
+// MG-40: detalle completo de un pedido (items con cantidad, precio
+// unitario y subtotal), para el modal "Ver detalle".
+export async function obtenerDetallePedido(id) {
+  const respuesta = await apiFetch(`/api/pedidos/${id}`);
+  return procesarRespuesta(respuesta);
+}
+
+// MG-40/MG-47: avanza el pedido al siguiente estado de su etapa
+// (Cocina: Nuevo -> En preparación -> Listo para entregar). El
+// backend calcula y valida la transición.
+export async function actualizarEstadoPedido(id, estadoEsperado) {
   const respuesta = await apiFetch(`/api/pedidos/${id}/estado`, {
     method: "PATCH",
-    body: JSON.stringify({ estado }),
+    body: JSON.stringify({ estado: estadoEsperado }),
   });
   return procesarRespuesta(respuesta);
 }

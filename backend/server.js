@@ -327,7 +327,7 @@ app.post("/api/mesas/:id/qr", verificarToken, verificarRol("ADMIN"), async (req,
 // ==========================
 // PRODUCTOS (MG-45, MG-55, MG-47)
 // ==========================
-app.get("/api/productos", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+app.get("/api/productos", verificarToken, verificarRol("ADMIN", "COCINERO"), async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT * FROM productos WHERE restaurante_id = $1 ORDER BY id",
@@ -380,12 +380,14 @@ app.put("/api/productos/:id", verificarToken, verificarRol("ADMIN"), async (req,
   }
 });
 
-// MG-55: Toggle disponibilidad
-app.patch("/api/productos/:id/disponibilidad", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+// MG-55/MG-40: Toggle disponibilidad — el admin lo gestiona desde
+// Productos, y el cocinero lo hace en caliente desde su panel cuando
+// se le acaba un insumo durante el servicio.
+app.patch("/api/productos/:id/disponibilidad", verificarToken, verificarRol("ADMIN", "COCINERO"), async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query(
-      `UPDATE productos SET disponible = NOT disponible
+      `UPDATE productos SET disponible = NOT disponible, actualizado_en = NOW()
        WHERE id=$1 AND restaurante_id=$2 RETURNING *`,
       [id, req.usuario.restaurante_id]
     );
@@ -415,14 +417,14 @@ app.delete("/api/productos/:id", verificarToken, verificarRol("ADMIN"), async (r
 });
 
 // ==========================
-// PEDIDOS (MG-47, MG-61)
+// PEDIDOS (MG-47, MG-61, MG-40)
 // ==========================
 app.get("/api/pedidos", verificarToken, verificarRol("ADMIN", "COCINERO", "DESPACHADOR"), async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT
-        p.id, p.codigo, m.numero AS mesa, p.estado,
-        p.metodo_pago, p.total, p.creado_en,
+        p.id, p.codigo, m.numero AS mesa, m.zona, p.estado,
+        p.metodo_pago, p.total, p.creado_en, p.actualizado_en,
         STRING_AGG(pr.nombre || ' x' || dp.cantidad, ', ') AS productos,
         COUNT(dp.id) AS cantidad_productos
       FROM pedidos p
@@ -430,7 +432,8 @@ app.get("/api/pedidos", verificarToken, verificarRol("ADMIN", "COCINERO", "DESPA
       JOIN detalle_pedido dp ON dp.pedido_id = p.id
       JOIN productos pr ON pr.id = dp.producto_id
       WHERE p.restaurante_id = $1
-      GROUP BY p.id, m.numero
+        AND p.pago_validado = true
+      GROUP BY p.id, m.numero, m.zona
       ORDER BY p.creado_en DESC
     `, [req.usuario.restaurante_id]);
     res.json(result.rows);
@@ -438,6 +441,108 @@ app.get("/api/pedidos", verificarToken, verificarRol("ADMIN", "COCINERO", "DESPA
     res.status(500).json({ error: "Error al obtener pedidos." });
   }
 });
+
+// MG-40: detalle de un pedido — cada producto con su cantidad, precio
+// unitario y subtotal, para el modal "Ver detalle" del panel de cocina.
+// Mismo filtro de pago validado que la lista, por consistencia.
+app.get("/api/pedidos/:id", verificarToken, verificarRol("ADMIN", "COCINERO", "DESPACHADOR"), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const pedidoResult = await pool.query(
+      `SELECT p.id, p.codigo, m.numero AS mesa, m.zona, p.estado, p.metodo_pago,
+              p.total, p.creado_en, p.observaciones
+       FROM pedidos p
+       JOIN mesas m ON p.mesa_id = m.id
+       WHERE p.id = $1 AND p.restaurante_id = $2 AND p.pago_validado = true`,
+      [id, req.usuario.restaurante_id]
+    );
+
+    if (pedidoResult.rows.length === 0) {
+      return res.status(404).json({ error: "Pedido no encontrado." });
+    }
+
+    const itemsResult = await pool.query(
+      `SELECT pr.nombre, dp.cantidad, dp.precio_unitario,
+              (dp.cantidad * dp.precio_unitario) AS subtotal
+       FROM detalle_pedido dp
+       JOIN productos pr ON pr.id = dp.producto_id
+       WHERE dp.pedido_id = $1
+       ORDER BY pr.nombre`,
+      [id]
+    );
+
+    res.json({ ...pedidoResult.rows[0], items: itemsResult.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener el detalle del pedido." });
+  }
+});
+
+// MG-40/MG-47: avance de estado de un pedido, un paso a la vez, según
+// el flujo real del negocio:
+//   Nuevo -> En preparación -> Listo para entregar   (COCINERO)
+//   Listo para entregar -> Entregado                 (DESPACHADOR)
+// El backend siempre calcula el siguiente estado válido — el cliente
+// nunca puede "saltarse" pasos ni mandar un estado arbitrario.
+const SIGUIENTE_ESTADO_POR_ROL = {
+  COCINERO: {
+    Nuevo: "En preparación",
+    "En preparación": "Listo para entregar",
+  },
+  DESPACHADOR: {
+    "Listo para entregar": "Entregado",
+  },
+};
+
+app.patch(
+  "/api/pedidos/:id/estado",
+  verificarToken,
+  verificarRol("COCINERO", "DESPACHADOR"),
+  async (req, res) => {
+    const { id } = req.params;
+    const mapaTransiciones = SIGUIENTE_ESTADO_POR_ROL[req.usuario.rol];
+
+    try {
+      const pedidoActual = await pool.query(
+        "SELECT id, estado FROM pedidos WHERE id = $1 AND restaurante_id = $2 AND pago_validado = true",
+        [id, req.usuario.restaurante_id]
+      );
+
+      if (pedidoActual.rows.length === 0) {
+        return res.status(404).json({ error: "Pedido no encontrado." });
+      }
+
+      const estadoActual = pedidoActual.rows[0].estado;
+      const estadoSiguiente = mapaTransiciones[estadoActual];
+
+      if (!estadoSiguiente) {
+        return res.status(400).json({
+          error: `No puedes avanzar un pedido que está en estado "${estadoActual}".`,
+        });
+      }
+
+      // Si el frontend mandó un estado esperado, lo validamos como
+      // capa extra de seguridad (evita condiciones de carrera raras
+      // donde el pedido cambió de estado entre que se pintó el botón
+      // y que se hizo clic).
+      if (req.body?.estado && req.body.estado !== estadoSiguiente) {
+        return res.status(409).json({
+          error: `Este pedido ya cambió de estado. Estado actual: "${estadoActual}".`,
+        });
+      }
+
+      const resultado = await pool.query(
+        "UPDATE pedidos SET estado = $1, actualizado_en = NOW() WHERE id = $2 AND restaurante_id = $3 RETURNING id, codigo, estado, actualizado_en",
+        [estadoSiguiente, id, req.usuario.restaurante_id]
+      );
+
+      res.json(resultado.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Error al actualizar el estado del pedido." });
+    }
+  }
+);
 
 // ==========================
 // MENÚ DIGITAL PÚBLICO (MG-64)
