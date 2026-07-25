@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Bell,
   ChefHat,
+  ClipboardList,
   FileBarChart,
   LogOut,
   MapPin,
@@ -11,13 +12,40 @@ import {
   Settings,
   Table2,
   Tag,
-  Truck,
   User,
   UserCircle2,
   Users,
 } from "lucide-react";
 import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
 import { obtenerUsuarioSesion } from "../../components/RutaProtegida";
+
+// MG-48: ícono a medida para "Entregas" en el sidebar — una mano
+// sosteniendo una bandeja con el plato cubierto (cloche), en vez del
+// camión genérico de lucide-react, inspirado en el clásico ícono de
+// "servicio a la mesa". Usa "currentColor" (relleno sólido) y
+// respeta el prop "size" para comportarse igual que el resto de
+// íconos de lucide-react usados en el menú.
+function IconoMeseroEntrega({ size = 20 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Manija de la cúpula */}
+      <circle cx="12" cy="3.1" r="1" />
+      <rect x="11.35" y="3.9" width="1.3" height="1.6" rx="0.55" />
+      {/* Cúpula que cubre el plato */}
+      <path d="M4.5 10.2C4.5 6 7.9 3 12 3s7.5 3 7.5 7.2H4.5Z" />
+      {/* Bandeja / plato */}
+      <ellipse cx="12" cy="10.9" rx="8.6" ry="1.6" />
+      {/* Mano que sostiene la bandeja desde abajo */}
+      <path d="M2.1 15.1c2.7-1.5 5.6-2.5 8.6-2.8a1 1 0 1 1 .2 2c-1.8.2-3.6.7-5.3 1.4l6.9 2.4c.6.2 1.2.2 1.7 0l6.8-2.4a1 1 0 1 1 .7 1.9l-6.8 2.4c-1 .3-2.1.3-3.1 0L2.9 17c-.5-.2-.9-.7-.8-1.3.02-.2.06-.4.1-.6Z" />
+    </svg>
+  );
+}
 
 // MG-40: cada rol tiene un menú "principal" (su operación del día a
 // día) y, opcionalmente, uno "secundario" que aparece después de un
@@ -46,7 +74,13 @@ const MENU_POR_ROL = {
     secundario: [{ icon: UserCircle2, label: "Mi Perfil" }],
   },
   DESPACHADOR: {
-    principal: [{ to: "/restaurante/entregas", icon: Truck, label: "Entregas" }],
+    principal: [
+      { to: "/restaurante/entregas", icon: IconoMeseroEntrega, label: "Entregas" },
+      // MG-48: implementación del panel de entregas — se agrega el
+      // historial junto a "Entregas" ya que ambas pantallas son
+      // parte del mismo flujo de trabajo del despachador.
+      { to: "/restaurante/historial-entregas", icon: ClipboardList, label: "Historial de Entregas" },
+    ],
   },
 };
 

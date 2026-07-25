@@ -8,6 +8,7 @@ import Cocina from "./pages/restaurante/Cocina";
 import DisponibilidadProductos from "./pages/restaurante/DisponibilidadProductos";
 import MiPerfil from "./pages/restaurante/MiPerfil";
 import Entregas from "./pages/restaurante/Entregas";
+import HistorialEntregas from "./pages/restaurante/HistorialEntregas";
 import Mesas from "./pages/restaurante/Mesas";
 import Zonas from "./pages/restaurante/Zonas";
 import Productos from "./pages/restaurante/Productos";
@@ -84,6 +85,15 @@ function App() {
             element={
               <RutaProtegida roles={["DESPACHADOR"]}>
                 <Entregas />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
+            path="historial-entregas"
+            element={
+              <RutaProtegida roles={["DESPACHADOR"]}>
+                <HistorialEntregas />
               </RutaProtegida>
             }
           />
