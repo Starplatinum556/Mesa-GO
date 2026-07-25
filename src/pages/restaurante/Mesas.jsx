@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Plus, QrCode, Table2, Trash2, Edit, Users, MapPin } from "lucide-react";
 import toast from "react-hot-toast";
 import { obtenerMesas, crearMesa, actualizarMesa, eliminarMesa } from "../../services/mesasService";
+import { obtenerZonas } from "../../services/zonasService";
 import Modal from "../../components/Modal";
 import MesaForm from "../../components/MesaForm";
 
@@ -10,6 +11,7 @@ function Mesas() {
   const [qrData, setQrData] = useState(null);
   const [qrModalAbierto, setQrModalAbierto] = useState(false);
   const [mesas, setMesas] = useState([]);
+  const [zonas, setZonas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [mesaEditar, setMesaEditar] = useState(null);
@@ -25,8 +27,22 @@ function Mesas() {
     }
   };
 
+  // MG-66: las zonas ya no son texto libre, se administran en su
+  // propio módulo y se seleccionan aquí desde una lista real. Solo
+  // se ofrecen las zonas activas para que no se pueda asignar una
+  // mesa a una zona que el admin desactivó.
+  const cargarZonas = async () => {
+    try {
+      const datos = await obtenerZonas();
+      setZonas(datos.filter((z) => z.estado === "activa"));
+    } catch (err) {
+      toast.error(err.message || "No se pudieron cargar las zonas.");
+    }
+  };
+
   useEffect(() => {
     cargarMesas();
+    cargarZonas();
   }, []);
 
   const abrirModalNueva = () => {
@@ -204,7 +220,11 @@ function Mesas() {
                     </span>
                     <span>
                       <MapPin size={16} />
-                      {mesa.zona || "Salón principal"}
+                      {/* MG-66: zona_nombre viene del JOIN con la tabla
+                          zonas (vía zona_id) en el backend. Si la mesa
+                          no tiene zona asignada, se muestra un texto
+                          neutro en vez de asumir "Salón principal". */}
+                      {mesa.zona_nombre || "Sin zona asignada"}
                     </span>
                   </div>
 
@@ -283,6 +303,7 @@ function Mesas() {
         >
           <MesaForm
             mesaEditar={mesaEditar}
+            zonas={zonas}
             onGuardar={manejarGuardar}
             onCancelar={cerrarModal}
           />

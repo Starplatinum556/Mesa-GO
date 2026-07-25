@@ -9,6 +9,7 @@ import DisponibilidadProductos from "./pages/restaurante/DisponibilidadProductos
 import MiPerfil from "./pages/restaurante/MiPerfil";
 import Entregas from "./pages/restaurante/Entregas";
 import Mesas from "./pages/restaurante/Mesas";
+import Zonas from "./pages/restaurante/Zonas";
 import Productos from "./pages/restaurante/Productos";
 import Categorias from "./pages/restaurante/Categorias";
 import Personal from "./pages/restaurante/Personal";
@@ -92,6 +93,15 @@ function App() {
             element={
               <RutaProtegida roles={["ADMIN"]}>
                 <Mesas />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
+            path="zonas"
+            element={
+              <RutaProtegida roles={["ADMIN"]}>
+                <Zonas />
               </RutaProtegida>
             }
           />

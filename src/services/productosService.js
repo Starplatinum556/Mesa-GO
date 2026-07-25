@@ -1,16 +1,10 @@
-import { apiFetch } from "../api";
+import { apiFetch, procesarRespuesta } from "../api";
 
-async function procesarRespuesta(respuesta) {
-  const datos = await respuesta.json();
-  if (!respuesta.ok) {
-    throw new Error(datos.error || "Ocurrió un error con los productos");
-  }
-  return datos;
-}
+const MENSAJE_ERROR = "Ocurrió un error con los productos";
 
 export async function obtenerProductos() {
   const respuesta = await apiFetch("/api/productos");
-  return procesarRespuesta(respuesta);
+  return procesarRespuesta(respuesta, MENSAJE_ERROR);
 }
 
 export async function crearProducto(producto) {
@@ -18,7 +12,7 @@ export async function crearProducto(producto) {
     method: "POST",
     body: JSON.stringify(producto),
   });
-  return procesarRespuesta(respuesta);
+  return procesarRespuesta(respuesta, MENSAJE_ERROR);
 }
 
 export async function actualizarProducto(id, producto) {
@@ -26,19 +20,19 @@ export async function actualizarProducto(id, producto) {
     method: "PUT",
     body: JSON.stringify(producto),
   });
-  return procesarRespuesta(respuesta);
+  return procesarRespuesta(respuesta, MENSAJE_ERROR);
 }
 
 export async function eliminarProducto(id) {
   const respuesta = await apiFetch(`/api/productos/${id}`, {
     method: "DELETE",
   });
-  return procesarRespuesta(respuesta);
+  return procesarRespuesta(respuesta, MENSAJE_ERROR);
 }
 
 export async function cambiarDisponibilidadProducto(id) {
   const respuesta = await apiFetch(`/api/productos/${id}/disponibilidad`, {
     method: "PATCH",
   });
-  return procesarRespuesta(respuesta);
+  return procesarRespuesta(respuesta, MENSAJE_ERROR);
 }

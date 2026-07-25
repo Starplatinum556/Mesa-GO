@@ -13,3 +13,14 @@ export const apiFetch = async (endpoint, opciones = {}) => {
   });
   return respuesta;
 };
+
+// Compartida por todos los services (productosService, categoriasService,
+// zonasService, etc.) para no repetir la misma función en cada archivo.
+// mensajeDefecto se usa si el backend no manda un "error" en el body.
+export async function procesarRespuesta(respuesta, mensajeDefecto = "Ocurrió un error inesperado") {
+  const datos = await respuesta.json();
+  if (!respuesta.ok) {
+    throw new Error(datos.error || mensajeDefecto);
+  }
+  return datos;
+}

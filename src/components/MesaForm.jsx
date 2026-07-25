@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { CircleCheck, CircleX } from "lucide-react";
 
 const valoresIniciales = {
   numero: "",
-  zona: "Salón principal",
+  zona_id: "",
   capacidad: "",
   estado: "DISPONIBLE",
   qr_codigo: "",
 };
 
-function MesaForm({ mesaEditar, onGuardar, onCancelar }) {
+// MG-66: "zonas" es la lista de zonas activas del restaurante,
+// obtenida desde la BD (ya no es texto libre). Viene como prop desde
+// Mesas.jsx, que la carga con zonasService.obtenerZonas().
+function MesaForm({ mesaEditar, zonas = [], onGuardar, onCancelar }) {
   const [formulario, setFormulario] = useState(valoresIniciales);
   const [guardando, setGuardando] = useState(false);
 
@@ -17,7 +21,7 @@ function MesaForm({ mesaEditar, onGuardar, onCancelar }) {
     if (mesaEditar) {
       setFormulario({
         numero: mesaEditar.numero ?? "",
-        zona: mesaEditar.zona ?? "Salón principal",
+        zona_id: mesaEditar.zona_id ?? "",
         capacidad: mesaEditar.capacidad ?? "",
         estado: mesaEditar.estado ?? "DISPONIBLE",
         qr_codigo: mesaEditar.qr_codigo ?? "",
@@ -35,6 +39,10 @@ function MesaForm({ mesaEditar, onGuardar, onCancelar }) {
     }));
   };
 
+  const seleccionarEstado = (valor) => {
+    setFormulario((anterior) => ({ ...anterior, estado: valor }));
+  };
+
   const manejarEnvio = async (event) => {
     event.preventDefault();
 
@@ -43,8 +51,8 @@ function MesaForm({ mesaEditar, onGuardar, onCancelar }) {
       return;
     }
 
-    if (!formulario.zona.trim()) {
-      toast.error("La zona es obligatoria");
+    if (!formulario.zona_id) {
+      toast.error("Selecciona una zona");
       return;
     }
 
@@ -57,7 +65,7 @@ function MesaForm({ mesaEditar, onGuardar, onCancelar }) {
       setGuardando(true);
       await onGuardar({
         numero: Number(formulario.numero),
-        zona: formulario.zona.trim(),
+        zona_id: Number(formulario.zona_id),
         capacidad: Number(formulario.capacidad),
         estado: formulario.estado,
         qr_codigo: formulario.qr_codigo || null,
@@ -83,13 +91,19 @@ function MesaForm({ mesaEditar, onGuardar, onCancelar }) {
 
       <label>
         Zona
-        <input
-          type="text"
-          name="zona"
-          value={formulario.zona}
-          onChange={manejarCambio}
-          placeholder="Salón principal"
-        />
+        <select name="zona_id" value={formulario.zona_id} onChange={manejarCambio}>
+          <option value="">Selecciona una zona</option>
+          {zonas.map((zona) => (
+            <option key={zona.id} value={zona.id}>
+              {zona.nombre}
+            </option>
+          ))}
+        </select>
+        {zonas.length === 0 && (
+          <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+            No tienes zonas activas registradas. Crea una desde el módulo Zonas.
+          </span>
+        )}
       </label>
 
       <label>
@@ -106,15 +120,24 @@ function MesaForm({ mesaEditar, onGuardar, onCancelar }) {
 
       <label>
         Estado
-        <select
-          name="estado"
-          value={formulario.estado}
-          onChange={manejarCambio}
-        >
-          <option value="DISPONIBLE">Disponible</option>
-          <option value="OCUPADA">Ocupada</option>
-          <option value="RESERVADA">Reservada</option>
-        </select>
+        <div className="toggle-estado-mesa">
+          <button
+            type="button"
+            className={`toggle-opcion-mesa disponible ${formulario.estado === "DISPONIBLE" ? "activo" : ""}`}
+            onClick={() => seleccionarEstado("DISPONIBLE")}
+          >
+            <CircleCheck size={16} />
+            Disponible
+          </button>
+          <button
+            type="button"
+            className={`toggle-opcion-mesa ocupada ${formulario.estado === "OCUPADA" ? "activo" : ""}`}
+            onClick={() => seleccionarEstado("OCUPADA")}
+          >
+            <CircleX size={16} />
+            Ocupada
+          </button>
+        </div>
       </label>
 
       {formulario.qr_codigo && (

@@ -4,6 +4,7 @@ import {
   ChefHat,
   FileBarChart,
   LogOut,
+  MapPin,
   Package,
   PackageX,
   QrCode,
@@ -25,6 +26,9 @@ const MENU_POR_ROL = {
   ADMIN: {
     principal: [
       { to: "/restaurante/mesas", icon: Table2, label: "Mesas" },
+      // MG-66: junto a Mesas, ya que las zonas existen para
+      // organizarlas.
+      { to: "/restaurante/zonas", icon: MapPin, label: "Zonas" },
       { to: "/restaurante/productos", icon: Package, label: "Productos" },
       // MG-65: junto a Productos, ya que las categorías existen para
       // organizarlos.
