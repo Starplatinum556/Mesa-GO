@@ -10,6 +10,7 @@ import MiPerfil from "./pages/restaurante/MiPerfil";
 import Entregas from "./pages/restaurante/Entregas";
 import Mesas from "./pages/restaurante/Mesas";
 import Productos from "./pages/restaurante/Productos";
+import Categorias from "./pages/restaurante/Categorias";
 import Personal from "./pages/restaurante/Personal";
 import Reportes from "./pages/restaurante/Reportes";
 import Configuracion from "./pages/restaurante/Configuracion";
@@ -100,6 +101,15 @@ function App() {
             element={
               <RutaProtegida roles={["ADMIN"]}>
                 <Productos />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
+            path="categorias"
+            element={
+              <RutaProtegida roles={["ADMIN"]}>
+                <Categorias />
               </RutaProtegida>
             }
           />

@@ -9,6 +9,7 @@ import {
   QrCode,
   Settings,
   Table2,
+  Tag,
   Truck,
   User,
   UserCircle2,
@@ -25,6 +26,9 @@ const MENU_POR_ROL = {
     principal: [
       { to: "/restaurante/mesas", icon: Table2, label: "Mesas" },
       { to: "/restaurante/productos", icon: Package, label: "Productos" },
+      // MG-65: junto a Productos, ya que las categorías existen para
+      // organizarlos.
+      { to: "/restaurante/categorias", icon: Tag, label: "Categorías" },
       { to: "/restaurante/personal", icon: Users, label: "Personal" },
       { to: "/restaurante/reportes", icon: FileBarChart, label: "Reportes" },
       { to: "/restaurante/configuracion", icon: Settings, label: "Configuración" },
