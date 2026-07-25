@@ -325,12 +325,142 @@ app.post("/api/mesas/:id/qr", verificarToken, verificarRol("ADMIN"), async (req,
 });
 
 // ==========================
-// PRODUCTOS (MG-45, MG-55, MG-47)
+// CATEGORÍAS (MG-65)
+// Cada restaurante administra sus propias categorías. El nombre es
+// único por restaurante (constraint categorias_nombre_restaurante_key
+// en la migración), y no se puede eliminar una categoría que tenga
+// productos asociados (se valida por categoria_id, la FK real en
+// productos, no por texto).
+// ==========================
+app.get("/api/categorias", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT c.id, c.nombre, c.descripcion, c.estado, c.created_at,
+              COUNT(p.id)::int AS productos
+       FROM categorias c
+       LEFT JOIN productos p ON p.categoria_id = c.id
+       WHERE c.restaurante_id = $1
+       GROUP BY c.id
+       ORDER BY c.nombre`,
+      [req.usuario.restaurante_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener categorías." });
+  }
+});
+
+app.post("/api/categorias", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { nombre, descripcion } = req.body;
+  if (!nombre || !nombre.trim()) {
+    return res.status(400).json({ error: "El nombre de la categoría es requerido." });
+  }
+  try {
+    const result = await pool.query(
+      `INSERT INTO categorias (nombre, descripcion, restaurante_id)
+       VALUES ($1, $2, $3) RETURNING id, nombre, descripcion, estado, created_at`,
+      [nombre.trim(), descripcion || null, req.usuario.restaurante_id]
+    );
+    res.status(201).json({ ...result.rows[0], productos: 0 });
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(400).json({ error: "Ya existe una categoría con ese nombre en tu restaurante." });
+    }
+    console.error(err);
+    res.status(500).json({ error: "Error al crear categoría." });
+  }
+});
+
+app.put("/api/categorias/:id", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { id } = req.params;
+  const { nombre, descripcion } = req.body;
+  if (!nombre || !nombre.trim()) {
+    return res.status(400).json({ error: "El nombre de la categoría es requerido." });
+  }
+  try {
+    const result = await pool.query(
+      `UPDATE categorias SET nombre=$1, descripcion=$2
+       WHERE id=$3 AND restaurante_id=$4
+       RETURNING id, nombre, descripcion, estado, created_at`,
+      [nombre.trim(), descripcion || null, id, req.usuario.restaurante_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Categoría no encontrada." });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(400).json({ error: "Ya existe una categoría con ese nombre en tu restaurante." });
+    }
+    console.error(err);
+    res.status(500).json({ error: "Error al actualizar categoría." });
+  }
+});
+
+// Alterna activa/inactiva. Una categoría inactiva sigue existiendo
+// (y sus productos también), simplemente deja de ofrecerse como
+// opción al crear/editar productos nuevos desde el frontend.
+app.patch("/api/categorias/:id/estado", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `UPDATE categorias
+       SET estado = CASE WHEN estado = 'activa' THEN 'inactiva' ELSE 'activa' END
+       WHERE id=$1 AND restaurante_id=$2
+       RETURNING id, nombre, estado`,
+      [id, req.usuario.restaurante_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Categoría no encontrada." });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al cambiar el estado de la categoría." });
+  }
+});
+
+app.delete("/api/categorias/:id", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const enUso = await pool.query(
+      "SELECT COUNT(*)::int AS total FROM productos WHERE categoria_id=$1 AND restaurante_id=$2",
+      [id, req.usuario.restaurante_id]
+    );
+    if (enUso.rows[0].total > 0) {
+      return res.status(400).json({
+        error: `No se puede eliminar: ${enUso.rows[0].total} producto(s) usan esta categoría.`,
+      });
+    }
+    const result = await pool.query(
+      "DELETE FROM categorias WHERE id=$1 AND restaurante_id=$2 RETURNING id",
+      [id, req.usuario.restaurante_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Categoría no encontrada." });
+    }
+    res.json({ mensaje: "Categoría eliminada correctamente." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al eliminar categoría." });
+  }
+});
+
+// ==========================
+// PRODUCTOS (MG-45, MG-55, MG-47, MG-65)
+// A partir de MG-65, la categoría se referencia por categoria_id
+// (FK real hacia la tabla categorias) en vez del texto libre que se
+// usaba antes.
 // ==========================
 app.get("/api/productos", verificarToken, verificarRol("ADMIN", "COCINERO"), async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM productos WHERE restaurante_id = $1 ORDER BY id",
+      `SELECT p.*, c.nombre AS categoria_nombre
+       FROM productos p
+       LEFT JOIN categorias c ON c.id = p.categoria_id
+       WHERE p.restaurante_id = $1
+       ORDER BY p.id`,
       [req.usuario.restaurante_id]
     );
     res.json(result.rows);
@@ -340,7 +470,7 @@ app.get("/api/productos", verificarToken, verificarRol("ADMIN", "COCINERO"), asy
 });
 
 app.post("/api/productos", verificarToken, verificarRol("ADMIN"), async (req, res) => {
-  const { nombre, precio, categoria, descripcion, disponible } = req.body;
+  const { nombre, precio, categoria_id, descripcion, disponible } = req.body;
   if (!nombre || !precio) {
     return res.status(400).json({ error: "Nombre y precio son requeridos." });
   }
@@ -348,10 +478,19 @@ app.post("/api/productos", verificarToken, verificarRol("ADMIN"), async (req, re
     return res.status(400).json({ error: "El precio debe ser un número mayor a 0." });
   }
   try {
+    if (categoria_id) {
+      const cat = await pool.query(
+        "SELECT id FROM categorias WHERE id=$1 AND restaurante_id=$2",
+        [categoria_id, req.usuario.restaurante_id]
+      );
+      if (cat.rows.length === 0) {
+        return res.status(400).json({ error: "La categoría seleccionada no es válida." });
+      }
+    }
     const result = await pool.query(
-      `INSERT INTO productos (nombre, precio, categoria, descripcion, disponible, restaurante_id)
+      `INSERT INTO productos (nombre, precio, categoria_id, descripcion, disponible, restaurante_id)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [nombre, precio, categoria || "General", descripcion || "", disponible ?? true, req.usuario.restaurante_id]
+      [nombre, precio, categoria_id || null, descripcion || "", disponible ?? true, req.usuario.restaurante_id]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -361,15 +500,24 @@ app.post("/api/productos", verificarToken, verificarRol("ADMIN"), async (req, re
 
 app.put("/api/productos/:id", verificarToken, verificarRol("ADMIN"), async (req, res) => {
   const { id } = req.params;
-  const { nombre, precio, categoria, descripcion, disponible } = req.body;
+  const { nombre, precio, categoria_id, descripcion, disponible } = req.body;
   if (!nombre || !precio) {
     return res.status(400).json({ error: "Nombre y precio son requeridos." });
   }
   try {
+    if (categoria_id) {
+      const cat = await pool.query(
+        "SELECT id FROM categorias WHERE id=$1 AND restaurante_id=$2",
+        [categoria_id, req.usuario.restaurante_id]
+      );
+      if (cat.rows.length === 0) {
+        return res.status(400).json({ error: "La categoría seleccionada no es válida." });
+      }
+    }
     const result = await pool.query(
-      `UPDATE productos SET nombre=$1, precio=$2, categoria=$3, descripcion=$4, disponible=$5
+      `UPDATE productos SET nombre=$1, precio=$2, categoria_id=$3, descripcion=$4, disponible=$5
        WHERE id=$6 AND restaurante_id=$7 RETURNING *`,
-      [nombre, precio, categoria || "General", descripcion || "", disponible ?? true, id, req.usuario.restaurante_id]
+      [nombre, precio, categoria_id || null, descripcion || "", disponible ?? true, id, req.usuario.restaurante_id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Producto no encontrado." });
@@ -566,11 +714,14 @@ app.get("/api/menu/:codigoQr", async (req, res) => {
 
     const mesa = resMesa.rows[0];
 
+    // MG-65: la categoría ahora sale del JOIN con categorias (vía
+    // categoria_id), ya no del texto libre que tenía productos.
     const resProductos = await pool.query(
-      `SELECT id, nombre, descripcion, precio, categoria
-       FROM productos
-       WHERE restaurante_id = $1 AND disponible = true
-       ORDER BY categoria, nombre`,
+      `SELECT p.id, p.nombre, p.descripcion, p.precio, c.nombre AS categoria
+       FROM productos p
+       LEFT JOIN categorias c ON c.id = p.categoria_id
+       WHERE p.restaurante_id = $1 AND p.disponible = true
+       ORDER BY c.nombre, p.nombre`,
       [mesa.restaurante_id]
     );
 
