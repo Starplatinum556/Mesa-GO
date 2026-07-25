@@ -1086,6 +1086,139 @@ app.put("/api/restaurante", verificarToken, verificarRol("ADMIN"), async (req, r
   }
 });
 
+// ==========================
+// ENTREGAS (MG-48)
+// ==========================
+app.get("/api/entregas", verificarToken, verificarRol("ADMIN", "DESPACHADOR"), async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT p.id, p.codigo, m.numero AS mesa, m.zona, p.estado,
+        p.metodo_pago, p.total, p.creado_en,
+        COUNT(dp.id) AS cantidad_productos
+      FROM pedidos p
+      JOIN mesas m ON p.mesa_id = m.id
+      LEFT JOIN detalle_pedido dp ON dp.pedido_id = p.id
+      WHERE p.restaurante_id = $1
+        AND p.estado IN ('Listo', 'Listo para entregar', 'Entregado')
+      GROUP BY p.id, m.numero, m.zona
+      ORDER BY p.creado_en ASC
+    `, [req.usuario.restaurante_id]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: "Error al obtener entregas." });
+  }
+});
+
+app.get("/api/entregas/historial", verificarToken, verificarRol("ADMIN", "DESPACHADOR"), async (req, res) => {
+  const { busqueda, desde, hasta, estado } = req.query;
+  const params = [req.usuario.restaurante_id];
+  let condiciones = `p.restaurante_id = $1 AND p.estado IN ('Completado','Cancelado','No entregado')`;
+  let idx = 2;
+ 
+  if (busqueda) { condiciones += ` AND p.codigo ILIKE $${idx}`; params.push(`%${busqueda}%`); idx++; }
+  if (desde)    { condiciones += ` AND p.creado_en >= $${idx}::date`; params.push(desde); idx++; }
+  if (hasta)    { condiciones += ` AND p.creado_en < ($${idx}::date + INTERVAL '1 day')`; params.push(hasta); idx++; }
+  if (estado && estado !== "todos") { condiciones += ` AND p.estado = $${idx}`; params.push(estado); idx++; }
+ 
+  try {
+    const result = await pool.query(`
+      SELECT p.id, p.codigo, m.numero AS mesa, m.zona,
+        p.estado, p.total, p.metodo_pago, p.creado_en,
+        p.observaciones, p.completado_por,
+        COUNT(dp.id) AS cantidad_productos
+      FROM pedidos p
+      JOIN mesas m ON p.mesa_id = m.id
+      LEFT JOIN detalle_pedido dp ON dp.pedido_id = p.id
+      WHERE ${condiciones}
+      GROUP BY p.id, m.numero, m.zona
+      ORDER BY p.creado_en DESC
+    `, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener historial." });
+  }
+});
+
+app.get("/api/entregas/:id", verificarToken, verificarRol("ADMIN", "DESPACHADOR"), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const resPedido = await pool.query(`
+      SELECT p.id, p.codigo, p.estado, p.metodo_pago, p.total,
+        p.creado_en, p.observaciones, m.numero AS mesa, m.zona
+      FROM pedidos p JOIN mesas m ON p.mesa_id = m.id
+      WHERE p.id = $1 AND p.restaurante_id = $2
+    `, [id, req.usuario.restaurante_id]);
+    if (resPedido.rows.length === 0) {
+      return res.status(404).json({ error: "Pedido no encontrado." });
+    }
+    const resItems = await pool.query(`
+      SELECT pr.nombre, dp.cantidad, pr.categoria, dp.precio_unitario,
+        (dp.cantidad * dp.precio_unitario) AS subtotal
+      FROM detalle_pedido dp
+      JOIN productos pr ON pr.id = dp.producto_id
+      WHERE dp.pedido_id = $1
+      ORDER BY pr.nombre
+    `, [id]);
+    res.json({ ...resPedido.rows[0], items: resItems.rows });
+  } catch (err) {
+    res.status(500).json({ error: "Error al obtener detalle." });
+  }
+});
+
+app.patch("/api/entregas/:id/entregar", verificarToken, verificarRol("ADMIN", "DESPACHADOR"), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `UPDATE pedidos SET estado = 'Entregado', actualizado_en = NOW()
+       WHERE id = $1 AND restaurante_id = $2
+       AND estado IN ('Listo', 'Listo para entregar') RETURNING *`,
+      [id, req.usuario.restaurante_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: "El pedido no está en estado Listo." });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: "Error al marcar como entregado." });
+  }
+});
+
+app.patch("/api/entregas/:id/completar", verificarToken, verificarRol("ADMIN", "DESPACHADOR"), async (req, res) => {
+  const { id } = req.params;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const resPedido = await client.query(
+      `SELECT mesa_id FROM pedidos
+       WHERE id = $1 AND restaurante_id = $2 AND estado = 'Entregado'`,
+      [id, req.usuario.restaurante_id]
+    );
+    if (resPedido.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "El pedido no está en estado Entregado." });
+    }
+    const mesa_id = resPedido.rows[0].mesa_id;
+    await client.query(
+      `UPDATE pedidos SET estado = 'Completado', actualizado_en = NOW() WHERE id = $1`, [id]
+    );
+    await client.query(
+      `UPDATE mesas SET disponible = true WHERE id = $1`, [mesa_id]
+    );
+    await client.query(
+      `UPDATE sesiones_cliente SET estado = 'FINALIZADA'
+       WHERE mesa_id = $1 AND estado = 'ACTIVA'`, [mesa_id]
+    );
+    await client.query("COMMIT");
+    res.json({ mensaje: "Servicio completado. Mesa liberada." });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ error: "Error al completar el servicio." });
+  } finally {
+    client.release();
+  }
+});
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Backend MesaGo corriendo en http://localhost:${PORT}`);
