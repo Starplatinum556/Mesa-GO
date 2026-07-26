@@ -3,6 +3,7 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const { verificarToken, verificarRol } = require("./middleware/auth");
 require("dotenv").config();
 
@@ -903,7 +904,141 @@ app.get("/api/menu/:codigoQr", async (req, res) => {
     res.status(500).json({ error: "Error interno al cargar el menú." });
   }
 });
+// ==========================
+// SESIONES TEMPORALES DEL CLIENTE (MG-52)
+// ==========================
+app.post("/api/sesiones-cliente", async (req, res) => {
+  const { codigoQr, tokenExistente } = req.body;
 
+  if (!codigoQr || codigoQr.trim() === "") {
+    return res.status(400).json({
+      error: "El código QR es requerido.",
+    });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // Verificar que el código QR pertenezca a una mesa existente.
+    const resultadoMesa = await client.query(
+      `SELECT id, numero, restaurante_id
+       FROM mesas
+       WHERE qr_codigo = $1`,
+      [codigoQr.trim()]
+    );
+
+    if (resultadoMesa.rows.length === 0) {
+      await client.query("ROLLBACK");
+
+      return res.status(404).json({
+        error: "Código QR inválido o mesa no encontrada.",
+      });
+    }
+
+    const mesa = resultadoMesa.rows[0];
+
+    // Marcar como expiradas las sesiones que ya terminaron.
+    await client.query(
+      `UPDATE sesiones_cliente
+       SET estado = 'EXPIRADA'
+       WHERE estado = 'ACTIVA'
+         AND expira_en IS NOT NULL
+         AND expira_en <= CURRENT_TIMESTAMP`
+    );
+
+    // Recuperar la sesión anterior del navegador si todavía es válida.
+    if (tokenExistente) {
+      const resultadoSesion = await client.query(
+        `SELECT id, token, restaurante_id, mesa_id,
+                estado, creada_en, expira_en
+         FROM sesiones_cliente
+         WHERE token = $1
+           AND mesa_id = $2
+           AND restaurante_id = $3
+           AND estado = 'ACTIVA'
+           AND (
+             expira_en IS NULL
+             OR expira_en > CURRENT_TIMESTAMP
+           )`,
+        [
+          tokenExistente,
+          mesa.id,
+          mesa.restaurante_id,
+        ]
+      );
+
+      if (resultadoSesion.rows.length > 0) {
+        await client.query("COMMIT");
+
+        return res.json({
+          mensaje: "Sesión temporal recuperada.",
+          sesion: resultadoSesion.rows[0],
+          mesa: {
+            id: mesa.id,
+            numero: mesa.numero,
+          },
+        });
+      }
+    }
+
+    // Crear un token difícil de adivinar.
+    const nuevoToken = crypto.randomBytes(32).toString("hex");
+
+    // La sesión tendrá una duración de dos horas.
+    const resultadoNuevaSesion = await client.query(
+      `INSERT INTO sesiones_cliente
+        (
+          token,
+          restaurante_id,
+          mesa_id,
+          estado,
+          expira_en
+        )
+       VALUES (
+          $1,
+          $2,
+          $3,
+          'ACTIVA',
+          CURRENT_TIMESTAMP + INTERVAL '2 hours'
+       )
+       RETURNING
+          id,
+          token,
+          restaurante_id,
+          mesa_id,
+          estado,
+          creada_en,
+          expira_en`,
+      [
+        nuevoToken,
+        mesa.restaurante_id,
+        mesa.id,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    return res.status(201).json({
+      mensaje: "Sesión temporal creada correctamente.",
+      sesion: resultadoNuevaSesion.rows[0],
+      mesa: {
+        id: mesa.id,
+        numero: mesa.numero,
+      },
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Error al crear sesión temporal:", error);
+
+    return res.status(500).json({
+      error: "No se pudo crear la sesión temporal.",
+    });
+  } finally {
+    client.release();
+  }
+});
 // ==========================
 // PERSONAL (MG-36)
 // ==========================

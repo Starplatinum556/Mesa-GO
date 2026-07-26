@@ -1,11 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Search, ShoppingCart } from "lucide-react";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { obtenerMenuPorCodigoQr } from "../services/menuService";
+import {
+  obtenerMenuPorCodigoQr,
+  crearORecuperarSesionCliente,
+} from "../services/menuService";
 
-// MG-34: pequeño toque visual para reconocer cada categoría de un
-// vistazo. Si la categoría no está mapeada, usa un ícono genérico.
+// MG-34: permite reconocer visualmente cada categoría.
 const ICONOS_CATEGORIA = {
   entradas: "🥗",
   "platos fuertes": "🍽️",
@@ -27,11 +34,17 @@ const ICONOS_CATEGORIA = {
 };
 
 function obtenerIconoCategoria(categoria = "") {
-  return ICONOS_CATEGORIA[categoria.trim().toLowerCase()] || "🍴";
+  return (
+    ICONOS_CATEGORIA[categoria.trim().toLowerCase()] || "🍴"
+  );
 }
 
 function MenuDigital() {
   const { codigoQr } = useParams();
+
+  // MG-52: evita procesar dos veces el mismo código QR
+  // cuando React ejecuta el efecto nuevamente en desarrollo.
+  const sesionProcesadaRef = useRef(null);
 
   const [mesa, setMesa] = useState(null);
   const [productos, setProductos] = useState([]);
@@ -39,26 +52,61 @@ function MenuDigital() {
   const [categoria, setCategoria] = useState("Todas");
   const [carrito, setCarrito] = useState([]);
   const [cargando, setCargando] = useState(true);
-  // MG-64: mensaje persistente para los casos de error (QR inexistente,
-  // invalidado, mesa eliminada o falla interna). No basta con un toast
-  // porque el cliente puede tardar en mirar la pantalla tras escanear.
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Evitar dos solicitudes consecutivas para el mismo QR.
+    if (sesionProcesadaRef.current === codigoQr) {
+      return;
+    }
+
+    sesionProcesadaRef.current = codigoQr;
+
     const cargarMenu = async () => {
       setCargando(true);
       setError(null);
 
       try {
-        // MG-64: 1) token recibido desde la URL (codigoQr) -> 2)-4) el
-        // backend valida que exista/esté activo e identifica la mesa ->
-        // 5)-6) devuelve el menú disponible organizado por categorías.
+        // MG-64: cargar la mesa y el menú mediante el código QR.
         const datos = await obtenerMenuPorCodigoQr(codigoQr);
+
+        // MG-52: buscar una sesión guardada para este QR.
+        const claveSesion =
+          `mesago_sesion_cliente_${codigoQr}`;
+
+        const tokenGuardado =
+          localStorage.getItem(claveSesion);
+
+        // Crear una sesión temporal nueva o recuperar la activa.
+        const datosSesion =
+          await crearORecuperarSesionCliente(
+            codigoQr,
+            tokenGuardado
+          );
+
+        // Guardar el token asociado específicamente a esta mesa.
+        localStorage.setItem(
+          claveSesion,
+          datosSesion.sesion.token
+        );
+
+        // Guardar los datos completos para el carrito y pedido.
+        localStorage.setItem(
+          "mesago_sesion_cliente_actual",
+          JSON.stringify(datosSesion.sesion)
+        );
+
         setMesa(datos.mesa);
         setProductos(datos.productos);
       } catch (err) {
-        setError(err.message || "No se pudo cargar el menú.");
-        toast.error(err.message || "No se pudo cargar el menú.");
+        // Permite volver a intentar si ocurrió un error.
+        sesionProcesadaRef.current = null;
+
+        const mensaje =
+          err.message || "No se pudo cargar el menú.";
+
+        setError(mensaje);
+        toast.error(mensaje);
       } finally {
         setCargando(false);
       }
@@ -70,42 +118,65 @@ function MenuDigital() {
   const categorias = useMemo(() => {
     return [
       "Todas",
-      ...new Set(productos.map((producto) => producto.categoria)),
+      ...new Set(
+        productos
+          .map((producto) => producto.categoria)
+          .filter(Boolean)
+      ),
     ];
   }, [productos]);
 
   const productosFiltrados = useMemo(() => {
     return productos.filter((producto) => {
-      const coincideBusqueda = producto.nombre
+      const nombre = producto.nombre || "";
+      const categoriaProducto =
+        producto.categoria || "Sin categoría";
+
+      const coincideBusqueda = nombre
         .toLowerCase()
         .includes(busqueda.toLowerCase());
 
       const coincideCategoria =
         categoria === "Todas" ||
-        producto.categoria === categoria;
+        categoriaProducto === categoria;
 
       return coincideBusqueda && coincideCategoria;
     });
   }, [productos, busqueda, categoria]);
 
-  // MG-64: el menú debe visualizarse organizado por categorías, no como
-  // una lista plana. Se agrupan los productos ya filtrados, respetando
-  // el orden en que llegaron desde el backend (categoria, nombre).
+  // MG-64: organizar los productos por categorías.
   const productosPorCategoria = useMemo(() => {
     const grupos = [];
+
     for (const producto of productosFiltrados) {
-      let grupo = grupos.find((g) => g.categoria === producto.categoria);
+      const nombreCategoria =
+        producto.categoria || "Sin categoría";
+
+      let grupo = grupos.find(
+        (item) => item.categoria === nombreCategoria
+      );
+
       if (!grupo) {
-        grupo = { categoria: producto.categoria, productos: [] };
+        grupo = {
+          categoria: nombreCategoria,
+          productos: [],
+        };
+
         grupos.push(grupo);
       }
+
       grupo.productos.push(producto);
     }
+
     return grupos;
   }, [productosFiltrados]);
 
   const agregarProducto = (producto) => {
-    setCarrito((anterior) => [...anterior, producto]);
+    setCarrito((anterior) => [
+      ...anterior,
+      producto,
+    ]);
+
     toast.success(`${producto.nombre} agregado`);
   };
 
@@ -116,15 +187,18 @@ function MenuDigital() {
   );
 
   if (cargando) {
-    return <p className="estado-carga">Cargando menú...</p>;
+    return (
+      <p className="estado-carga">
+        Cargando menú...
+      </p>
+    );
   }
 
-  // MG-64: casos de error (QR inexistente/invalidado, mesa eliminada,
-  // error interno) — no se muestra el menú en ninguno de estos casos.
   if (error || !mesa) {
     return (
       <p className="estado-error">
-        {error || "No se encontró la mesa asociada al código QR."}
+        {error ||
+          "No se encontró la mesa asociada al código QR."}
       </p>
     );
   }
@@ -145,7 +219,14 @@ function MenuDigital() {
 
         <div className="carrito-resumen">
           <ShoppingCart size={20} />
-          <span>{carrito.length} productos</span>
+
+          <span>
+            {carrito.length}{" "}
+            {carrito.length === 1
+              ? "producto"
+              : "productos"}
+          </span>
+
           <strong>${total.toFixed(2)}</strong>
         </div>
       </header>
@@ -157,7 +238,9 @@ function MenuDigital() {
           <input
             type="text"
             value={busqueda}
-            onChange={(event) => setBusqueda(event.target.value)}
+            onChange={(event) =>
+              setBusqueda(event.target.value)
+            }
             placeholder="Buscar productos..."
           />
         </div>
@@ -165,8 +248,11 @@ function MenuDigital() {
         <div className="categorias-menu">
           {categorias.map((item) => (
             <button
+              type="button"
               key={item}
-              className={categoria === item ? "activo" : ""}
+              className={
+                categoria === item ? "activo" : ""
+              }
               onClick={() => setCategoria(item)}
             >
               {item}
@@ -176,36 +262,69 @@ function MenuDigital() {
       </section>
 
       {productosPorCategoria.map((grupo) => (
-        <section className="categoria-menu-seccion" key={grupo.categoria}>
+        <section
+          className="categoria-menu-seccion"
+          key={grupo.categoria}
+        >
           <h2 className="categoria-menu-titulo">
-            <span className="categoria-menu-icono" aria-hidden="true">
-              {obtenerIconoCategoria(grupo.categoria)}
+            <span
+              className="categoria-menu-icono"
+              aria-hidden="true"
+            >
+              {obtenerIconoCategoria(
+                grupo.categoria
+              )}
             </span>
+
             {grupo.categoria}
+
             <span className="categoria-menu-contador">
               {grupo.productos.length}{" "}
-              {grupo.productos.length === 1 ? "producto" : "productos"}
+              {grupo.productos.length === 1
+                ? "producto"
+                : "productos"}
             </span>
           </h2>
 
           <div className="productos-menu-grid">
             {grupo.productos.map((producto) => (
-              <article className="producto-menu-card" key={producto.id}>
+              <article
+                className="producto-menu-card"
+                key={producto.id}
+              >
                 <div className="producto-menu-imagen">
-                  {obtenerIconoCategoria(producto.categoria)}
+                  {obtenerIconoCategoria(
+                    producto.categoria
+                  )}
                 </div>
 
                 <div className="producto-menu-contenido">
-                  <span>{producto.categoria}</span>
+                  <span>
+                    {producto.categoria ||
+                      "Sin categoría"}
+                  </span>
+
                   <h3>{producto.nombre}</h3>
-                  <p>{producto.descripcion}</p>
+
+                  <p>
+                    {producto.descripcion ||
+                      "Sin descripción disponible."}
+                  </p>
 
                   <div className="producto-menu-footer">
                     <strong>
-                      ${Number(producto.precio).toFixed(2)}
+                      $
+                      {Number(
+                        producto.precio
+                      ).toFixed(2)}
                     </strong>
 
-                    <button onClick={() => agregarProducto(producto)}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        agregarProducto(producto)
+                      }
+                    >
                       + Agregar
                     </button>
                   </div>
