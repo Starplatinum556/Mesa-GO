@@ -14,3 +14,17 @@ export async function obtenerMenuPorCodigoQr(codigoQr) {
   const respuesta = await apiFetch(`/api/menu/${codigoQr}`);
   return procesarRespuesta(respuesta);
 }
+export async function crearORecuperarSesionCliente(
+  codigoQr,
+  tokenExistente = null
+) {
+  const respuesta = await apiFetch("/api/sesiones-cliente", {
+    method: "POST",
+    body: JSON.stringify({
+      codigoQr,
+      tokenExistente,
+    }),
+  });
+
+  return procesarRespuesta(respuesta);
+}
