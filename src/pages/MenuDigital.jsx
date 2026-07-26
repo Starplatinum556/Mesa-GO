@@ -17,6 +17,7 @@ import toast from "react-hot-toast";
 import {
   obtenerMenuPorCodigoQr,
   crearORecuperarSesionCliente,
+  guardarPedidoTemporal,
 } from "../services/menuService";
 
 // MG-34: permite reconocer visualmente cada categoría.
@@ -60,6 +61,9 @@ function MenuDigital() {
   const [carrito, setCarrito] = useState([]);
   const [carritoAbierto, setCarritoAbierto] = useState(false);
   const [claveCarrito, setClaveCarrito] = useState(null);
+  const [observaciones, setObservaciones] = useState("");
+  const [guardandoPedido, setGuardandoPedido] = useState(false);
+  const [pedidoTemporal, setPedidoTemporal] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
@@ -114,25 +118,52 @@ function MenuDigital() {
         const carritoGuardado =
           localStorage.getItem(claveCarritoSesion);
 
-        if (carritoGuardado) {
-          try {
-            const productosGuardados =
-              JSON.parse(carritoGuardado);
+          if (carritoGuardado) {
+            try {
+              const productosGuardados =
+                JSON.parse(carritoGuardado);
 
-            setCarrito(
-              Array.isArray(productosGuardados)
-                ? productosGuardados
-                : []
-            );
-          } catch {
-            localStorage.removeItem(claveCarritoSesion);
+              setCarrito(
+                Array.isArray(productosGuardados)
+                  ? productosGuardados
+                  : []
+              );
+            } catch {
+              localStorage.removeItem(claveCarritoSesion);
+              setCarrito([]);
+            }
+          } else {
             setCarrito([]);
           }
-                }else {
-          setCarrito([]);
-        }
-        setMesa(datos.mesa);
-        setProductos(datos.productos);
+
+          // MG-57: recuperar el pedido temporal guardado de esta sesión.
+          const clavePedidoTemporal =
+            `mesago_pedido_temporal_${datosSesion.sesion.id}`;
+
+          const pedidoTemporalGuardado =
+            localStorage.getItem(clavePedidoTemporal);
+
+          if (pedidoTemporalGuardado) {
+            try {
+              const pedidoRecuperado =
+                JSON.parse(pedidoTemporalGuardado);
+
+              setPedidoTemporal(pedidoRecuperado);
+              setObservaciones(
+                pedidoRecuperado.observaciones || ""
+              );
+            } catch {
+              localStorage.removeItem(clavePedidoTemporal);
+              setPedidoTemporal(null);
+              setObservaciones("");
+            }
+          } else {
+            setPedidoTemporal(null);
+            setObservaciones("");
+          }
+
+          setMesa(datos.mesa);
+          setProductos(datos.productos);
       } catch (err) {
         // Permite volver a intentar si ocurrió un error.
         sesionProcesadaRef.current = null;
@@ -291,7 +322,60 @@ const disminuirCantidad = (productoId) => {
         setCarrito([]);
         toast.success("Carrito vaciado");
       };
+            // MG-57: guardar o actualizar el pedido temporal.
+      const manejarPedidoTemporal = async () => {
+        if (carrito.length === 0) {
+          toast.error("Agrega al menos un producto al carrito.");
+          return;
+        }
 
+        const sesionGuardada = localStorage.getItem(
+          "mesago_sesion_cliente_actual"
+        );
+
+        if (!sesionGuardada) {
+          toast.error("No se encontró una sesión temporal activa.");
+          return;
+        }
+
+        try {
+          setGuardandoPedido(true);
+
+          const sesion = JSON.parse(sesionGuardada);
+
+          if (!sesion.token) {
+            throw new Error(
+              "La sesión temporal no contiene un token válido."
+            );
+          }
+
+          const productosPedido = carrito.map((producto) => ({
+            producto_id: producto.id,
+            cantidad: producto.cantidad || 1,
+          }));
+
+          const respuesta = await guardarPedidoTemporal({
+            tokenSesion: sesion.token,
+            productos: productosPedido,
+            observaciones: observaciones.trim(),
+          });
+
+          setPedidoTemporal(respuesta.pedido);
+
+          localStorage.setItem(
+            `mesago_pedido_temporal_${sesion.id}`,
+            JSON.stringify(respuesta.pedido)
+          );
+
+          toast.success(respuesta.mensaje);
+        } catch (error) {
+          toast.error(
+            error.message || "No se pudo guardar el pedido temporal."
+          );
+        } finally {
+          setGuardandoPedido(false);
+        }
+      };
       // Cantidad total de unidades agregadas.
       const cantidadTotal = carrito.reduce(
         (acumulado, producto) =>
@@ -475,27 +559,70 @@ const disminuirCantidad = (productoId) => {
             })}
           </div>
 
-          <div className="carrito-panel-footer">
-            <div className="carrito-total">
-              <span>
-                Total de {cantidadTotal}{" "}
-                {cantidadTotal === 1
-                  ? "producto"
-                  : "productos"}
-              </span>
+            <div className="carrito-panel-footer">
+              <div className="pedido-observaciones">
+                <label htmlFor="observaciones-pedido">
+                  Observaciones del pedido
+                </label>
 
-              <strong>${total.toFixed(2)}</strong>
+                <textarea
+                  id="observaciones-pedido"
+                  value={observaciones}
+                  onChange={(event) =>
+                    setObservaciones(event.target.value)
+                  }
+                  maxLength={500}
+                  placeholder="Ejemplo: sin cebolla, bebida sin hielo..."
+                />
+
+                <small>
+                  {observaciones.length}/500 caracteres
+                </small>
+              </div>
+
+              {pedidoTemporal && (
+                <div className="pedido-temporal-guardado">
+                  <span>Pedido temporal guardado</span>
+                  <strong>{pedidoTemporal.codigo}</strong>
+                </div>
+              )}
+
+              <div className="carrito-total">
+                <span>
+                  Total de {cantidadTotal}{" "}
+                  {cantidadTotal === 1
+                    ? "producto"
+                    : "productos"}
+                </span>
+
+                <strong>${total.toFixed(2)}</strong>
+              </div>
+
+              <div className="carrito-acciones-finales">
+                <button
+                  type="button"
+                  className="carrito-guardar-pedido"
+                  onClick={manejarPedidoTemporal}
+                  disabled={guardandoPedido}
+                >
+                  {guardandoPedido
+                    ? "Guardando..."
+                    : pedidoTemporal
+                      ? "Actualizar pedido temporal"
+                      : "Guardar pedido temporal"}
+                </button>
+
+                <button
+                  type="button"
+                  className="carrito-vaciar"
+                  onClick={vaciarCarrito}
+                  disabled={guardandoPedido}
+                >
+                  <Trash2 size={17} />
+                  Vaciar carrito
+                </button>
+              </div>
             </div>
-
-            <button
-              type="button"
-              className="carrito-vaciar"
-              onClick={vaciarCarrito}
-            >
-              <Trash2 size={17} />
-              Vaciar carrito
-            </button>
-          </div>
         </>
       )}
     </aside>
