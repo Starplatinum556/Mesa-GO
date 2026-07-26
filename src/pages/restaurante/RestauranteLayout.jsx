@@ -16,8 +16,10 @@ import {
   UserCircle2,
   Users,
 } from "lucide-react";
-import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { obtenerUsuarioSesion } from "../../components/RutaProtegida";
+import { urlImagen } from "../../api";
+import { obtenerRestaurante } from "../../services/restauranteService";
 
 // MG-48: ícono a medida para "Entregas" en el sidebar — una mano
 // sosteniendo una bandeja con el plato cubierto (cloche), en vez del
@@ -49,7 +51,7 @@ function IconoMeseroEntrega({ size = 20 }) {
 
 // MG-40: cada rol tiene un menú "principal" (su operación del día a
 // día) y, opcionalmente, uno "secundario" que aparece después de un
-// divisor (por ahora solo "Mi Perfil" para el cocinero).
+// divisor ("Mi Perfil", disponible para los 3 roles).
 const MENU_POR_ROL = {
   ADMIN: {
     principal: [
@@ -65,13 +67,14 @@ const MENU_POR_ROL = {
       { to: "/restaurante/reportes", icon: FileBarChart, label: "Reportes" },
       { to: "/restaurante/configuracion", icon: Settings, label: "Configuración" },
     ],
+    secundario: [{ to: "/restaurante/mi-perfil", icon: UserCircle2, label: "Mi Perfil" }],
   },
   COCINERO: {
     principal: [
       { to: "/restaurante/cocina", icon: ChefHat, label: "Panel de Cocina" },
       { to: "/restaurante/disponibilidad", icon: PackageX, label: "Productos agotados" },
     ],
-    secundario: [{ icon: UserCircle2, label: "Mi Perfil" }],
+    secundario: [{ to: "/restaurante/mi-perfil", icon: UserCircle2, label: "Mi Perfil" }],
   },
   DESPACHADOR: {
     principal: [
@@ -81,6 +84,7 @@ const MENU_POR_ROL = {
       // parte del mismo flujo de trabajo del despachador.
       { to: "/restaurante/historial-entregas", icon: ClipboardList, label: "Historial de Entregas" },
     ],
+    secundario: [{ to: "/restaurante/mi-perfil", icon: UserCircle2, label: "Mi Perfil" }],
   },
 };
 
@@ -92,16 +96,41 @@ const NOMBRE_ROL = {
 
 function RestauranteLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const usuario = obtenerUsuarioSesion();
+
+  // La burbuja de "nombre / rol" en la topbar sería redundante en Mi
+  // Perfil, ya que esa pantalla ya muestra el nombre y rol del
+  // usuario en su propio contenido — se oculta solo ahí, para
+  // cualquiera de los 3 roles.
+  const enMiPerfil = location.pathname === "/restaurante/mi-perfil";
 
   // Reloj del topbar: se actualiza solo, sin necesidad de refrescar
   // la página. Cada minuto es suficiente ya que solo mostramos
   // horas y minutos (no segundos) en el mockup.
   const [ahora, setAhora] = useState(new Date());
 
+  // MG-56: logo y color principal del restaurante — cualquier rol
+  // puede leerlos (el endpoint ya lo permite) para que el sidebar y
+  // la topbar reflejen la identidad visual del negocio.
+  const [marca, setMarca] = useState({ logo: null, color_primario: null });
+
   useEffect(() => {
     const intervalo = setInterval(() => setAhora(new Date()), 60000);
     return () => clearInterval(intervalo);
+  }, []);
+
+  useEffect(() => {
+    obtenerRestaurante()
+      .then((restaurante) => {
+        setMarca({ logo: restaurante.logo, color_primario: restaurante.color_primario });
+        if (restaurante.color_primario) {
+          document.documentElement.style.setProperty("--color-primario", restaurante.color_primario);
+        }
+      })
+      .catch(() => {
+        // Si falla, el sidebar simplemente se queda con el ícono/color por defecto.
+      });
   }, []);
 
   // Formato manual en vez de toLocaleTimeString: así garantizamos
@@ -141,7 +170,11 @@ function RestauranteLayout() {
       <aside className="admin-sidebar">
         <div className="admin-logo">
           <div className="admin-logo-icon">
-            <QrCode size={22} />
+            {marca.logo ? (
+              <img src={urlImagen(marca.logo)} alt="Logo del restaurante" />
+            ) : (
+              <QrCode size={22} />
+            )}
           </div>
           <div>
             <h2>
@@ -164,11 +197,11 @@ function RestauranteLayout() {
           {menu.secundario && (
             <>
               <div className="admin-menu-divisor"></div>
-              {menu.secundario.map(({ icon: Icono, label }) => (
-                <button type="button" className="admin-menu-inerte" key={label}>
+              {menu.secundario.map(({ to, icon: Icono, label }) => (
+                <NavLink to={to} className="admin-menu-inerte" key={label}>
                   <Icono size={20} />
                   <span>{label}</span>
-                </button>
+                </NavLink>
               ))}
             </>
           )}
@@ -205,15 +238,17 @@ function RestauranteLayout() {
               <span>{fechaActual}</span>
             </div>
 
-            <button className="admin-user">
-              <div className="admin-user-icon">
-                <User size={19} />
-              </div>
-              <div>
-                <strong>{usuario.nombre}</strong>
-                <p>{NOMBRE_ROL[usuario.rol] || usuario.rol}</p>
-              </div>
-            </button>
+            {!enMiPerfil && (
+              <button className="admin-user">
+                <div className="admin-user-icon">
+                  <User size={19} />
+                </div>
+                <div>
+                  <strong>{usuario.nombre}</strong>
+                  <p>{NOMBRE_ROL[usuario.rol] || usuario.rol}</p>
+                </div>
+              </button>
+            )}
           </div>
         </header>
 

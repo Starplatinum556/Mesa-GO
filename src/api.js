@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:4000";
+export const BASE_URL = "http://localhost:4000";
 
 const getToken = () => sessionStorage.getItem("token");
 
@@ -12,6 +12,29 @@ export const apiFetch = async (endpoint, opciones = {}) => {
     },
   });
   return respuesta;
+};
+
+// MG-56: para subir archivos (FormData) NO hay que fijar el
+// "Content-Type" a mano — el navegador arma el boundary del
+// multipart automáticamente. Por eso este helper es distinto de
+// apiFetch en vez de reutilizarlo.
+export const apiFetchArchivo = async (endpoint, formData) => {
+  const respuesta = await fetch(`${BASE_URL}${endpoint}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: formData,
+  });
+  return respuesta;
+};
+
+// MG-56: arma la URL completa para mostrar una imagen guardada
+// (el backend devuelve rutas relativas, ej: "/uploads/restaurantes/1/logo-123.png").
+export const urlImagen = (rutaRelativa) => {
+  if (!rutaRelativa) return null;
+  if (/^https?:\/\//.test(rutaRelativa)) return rutaRelativa;
+  return `${BASE_URL}${rutaRelativa}`;
 };
 
 // Compartida por todos los services (productosService, categoriasService,

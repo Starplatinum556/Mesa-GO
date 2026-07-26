@@ -1,4 +1,4 @@
-import { apiFetch } from "../api";
+import { apiFetch, apiFetchArchivo } from "../api";
 
 async function procesarRespuesta(respuesta) {
   const datos = await respuesta.json();
@@ -20,5 +20,22 @@ export async function actualizarRestaurante(datosRestaurante) {
     method: "PUT",
     body: JSON.stringify(datosRestaurante),
   });
+  return procesarRespuesta(respuesta);
+}
+
+// MG-56: subir/reemplazar el logo. Recibe el File tal cual sale
+// del <input type="file">.
+export async function subirLogoRestaurante(archivo) {
+  const formData = new FormData();
+  formData.append("logo", archivo);
+  const respuesta = await apiFetchArchivo("/api/restaurante/logo", formData);
+  return procesarRespuesta(respuesta);
+}
+
+// MG-56: subir/reemplazar el banner.
+export async function subirBannerRestaurante(archivo) {
+  const formData = new FormData();
+  formData.append("banner", archivo);
+  const respuesta = await apiFetchArchivo("/api/restaurante/banner", formData);
   return procesarRespuesta(respuesta);
 }

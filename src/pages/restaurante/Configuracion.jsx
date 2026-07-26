@@ -1,23 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Building2,
   ClipboardList,
   Clock,
+  Image as ImageIcon,
   Mail,
   MapPin,
   Package,
+  Palette,
   Pencil,
   Phone,
   Save,
   Shield,
   Table2,
+  Upload,
   User,
   Users,
   X,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { apiFetch } from "../../api";
-import { actualizarRestaurante, obtenerRestaurante } from "../../services/restauranteService";
+import { apiFetch, urlImagen } from "../../api";
+import {
+  actualizarRestaurante,
+  obtenerRestaurante,
+  subirBannerRestaurante,
+  subirLogoRestaurante,
+} from "../../services/restauranteService";
 import { obtenerMesas } from "../../services/mesasService";
 import { obtenerProductos } from "../../services/productosService";
 import { obtenerPedidos } from "../../services/pedidosService";
@@ -32,7 +40,26 @@ const VALORES_INICIALES = {
   hora_apertura: "",
   hora_cierre: "",
   estado: "Abierto",
+  logo: "",
+  banner: "",
+  color_primario: "#ff7a1a",
 };
+
+// MG-56: 3 MB, mismo límite que valida el backend (multer).
+const TAMANO_MAXIMO_IMAGEN = 3 * 1024 * 1024;
+const TIPOS_IMAGEN_PERMITIDOS = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
+
+function archivoValido(archivo) {
+  if (!TIPOS_IMAGEN_PERMITIDOS.includes(archivo.type)) {
+    toast.error("Formato no permitido. Usa JPG, PNG, WEBP o SVG.");
+    return false;
+  }
+  if (archivo.size > TAMANO_MAXIMO_IMAGEN) {
+    toast.error("La imagen no puede pesar más de 3 MB.");
+    return false;
+  }
+  return true;
+}
 
 // El input type="time" necesita "HH:MM"; Postgres puede devolver "HH:MM:SS".
 function aFormatoHora(valor) {
@@ -97,6 +124,10 @@ function Configuracion() {
   const [guardando, setGuardando] = useState(false);
   const [editando, setEditando] = useState(false);
   const [resumen, setResumen] = useState(null);
+  const [subiendoLogo, setSubiendoLogo] = useState(false);
+  const [subiendoBanner, setSubiendoBanner] = useState(false);
+  const inputLogoRef = useRef(null);
+  const inputBannerRef = useRef(null);
 
   const cargar = async () => {
     try {
@@ -111,6 +142,9 @@ function Configuracion() {
         hora_apertura: aFormatoHora(restaurante.hora_apertura),
         hora_cierre: aFormatoHora(restaurante.hora_cierre),
         estado: restaurante.estado || "Abierto",
+        logo: restaurante.logo || "",
+        banner: restaurante.banner || "",
+        color_primario: restaurante.color_primario || "#ff7a1a",
       };
       setDatos(valores);
       setOriginal(valores);
@@ -174,6 +208,45 @@ function Configuracion() {
       toast.error(err.message || "No se pudieron guardar los cambios.");
     } finally {
       setGuardando(false);
+    }
+  };
+
+  // MG-56: la subida de logo/banner es una acción independiente del
+  // formulario de edición — se guarda al toque, sin pasar por
+  // "Guardar cambios", igual que un avatar en cualquier app.
+  const manejarSeleccionLogo = async (evento) => {
+    const archivo = evento.target.files?.[0];
+    evento.target.value = ""; // permite volver a elegir el mismo archivo después
+    if (!archivo || !archivoValido(archivo)) return;
+
+    setSubiendoLogo(true);
+    try {
+      const { logo } = await subirLogoRestaurante(archivo);
+      setDatos((anterior) => ({ ...anterior, logo }));
+      setOriginal((anterior) => ({ ...anterior, logo }));
+      toast.success("Logo actualizado correctamente.");
+    } catch (err) {
+      toast.error(err.message || "No se pudo subir el logo.");
+    } finally {
+      setSubiendoLogo(false);
+    }
+  };
+
+  const manejarSeleccionBanner = async (evento) => {
+    const archivo = evento.target.files?.[0];
+    evento.target.value = "";
+    if (!archivo || !archivoValido(archivo)) return;
+
+    setSubiendoBanner(true);
+    try {
+      const { banner } = await subirBannerRestaurante(archivo);
+      setDatos((anterior) => ({ ...anterior, banner }));
+      setOriginal((anterior) => ({ ...anterior, banner }));
+      toast.success("Banner actualizado correctamente.");
+    } catch (err) {
+      toast.error(err.message || "No se pudo subir el banner.");
+    } finally {
+      setSubiendoBanner(false);
     }
   };
 
@@ -249,6 +322,96 @@ function Configuracion() {
               <CampoLectura icono={MapPin} color="azul" etiqueta="Dirección" valor={datos.direccion || "Dirección pendiente"} />
             </div>
           )}
+        </article>
+
+        <article className="config-card">
+          <div className="config-card-header">
+            <Palette size={24} />
+            <div>
+              <h3>Identidad visual</h3>
+              <p>Logo, banner y color principal que verán tus clientes y tu personal.</p>
+            </div>
+          </div>
+
+          <div className="config-identidad">
+            <div className="identidad-item">
+              <span className="identidad-label">Logo</span>
+              <div className="identidad-preview identidad-preview-logo">
+                {datos.logo ? (
+                  <img src={urlImagen(datos.logo)} alt="Logo del restaurante" />
+                ) : (
+                  <ImageIcon size={26} />
+                )}
+              </div>
+              <input
+                ref={inputLogoRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                onChange={manejarSeleccionLogo}
+                hidden
+              />
+              <button
+                type="button"
+                className="btn-secundario btn-subir-imagen"
+                onClick={() => inputLogoRef.current?.click()}
+                disabled={subiendoLogo}
+              >
+                <Upload size={16} />
+                {subiendoLogo ? "Subiendo..." : datos.logo ? "Cambiar logo" : "Subir logo"}
+              </button>
+            </div>
+
+            <div className="identidad-item">
+              <span className="identidad-label">Banner</span>
+              <div className="identidad-preview identidad-preview-banner">
+                {datos.banner ? (
+                  <img src={urlImagen(datos.banner)} alt="Banner del restaurante" />
+                ) : (
+                  <ImageIcon size={26} />
+                )}
+              </div>
+              <input
+                ref={inputBannerRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                onChange={manejarSeleccionBanner}
+                hidden
+              />
+              <button
+                type="button"
+                className="btn-secundario btn-subir-imagen"
+                onClick={() => inputBannerRef.current?.click()}
+                disabled={subiendoBanner}
+              >
+                <Upload size={16} />
+                {subiendoBanner ? "Subiendo..." : datos.banner ? "Cambiar banner" : "Subir banner"}
+              </button>
+            </div>
+
+            <div className="identidad-item">
+              <span className="identidad-label">Color principal</span>
+              {editando ? (
+                <div className="identidad-color-editor">
+                  <input
+                    type="color"
+                    value={datos.color_primario}
+                    onChange={actualizarCampo("color_primario")}
+                  />
+                  <span>{datos.color_primario}</span>
+                </div>
+              ) : (
+                <div className="identidad-color-editor">
+                  <span className="identidad-color-chip" style={{ background: datos.color_primario }} />
+                  <span>{datos.color_primario}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <p className="identidad-nota">
+            Formatos permitidos: JPG, PNG, WEBP o SVG — máximo 3 MB. El logo y el banner se
+            guardan de inmediato; el color principal se guarda junto con "Guardar cambios".
+          </p>
         </article>
 
         <article className="config-card">

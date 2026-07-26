@@ -1,5 +1,8 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
 const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -9,6 +12,58 @@ require("dotenv").config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// ==========================
+// MG-56: subida de imágenes (logo / banner del restaurante)
+// Se guardan en disco, en backend/uploads/restaurantes/<restaurante_id>/,
+// y se sirven como estáticos desde /uploads. En la BD solo se guarda
+// la ruta pública (ej: "/uploads/restaurantes/1/logo-169...png").
+// ==========================
+const CARPETA_UPLOADS = path.join(__dirname, "uploads");
+app.use("/uploads", express.static(CARPETA_UPLOADS));
+
+const TIPOS_IMAGEN_PERMITIDOS = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
+
+function crearStorageImagenRestaurante(subcarpeta) {
+  return multer.diskStorage({
+    destination: (req, _archivo, cb) => {
+      const carpetaRestaurante = path.join(
+        CARPETA_UPLOADS,
+        "restaurantes",
+        String(req.usuario.restaurante_id)
+      );
+      fs.mkdirSync(carpetaRestaurante, { recursive: true });
+      cb(null, carpetaRestaurante);
+    },
+    filename: (_req, archivo, cb) => {
+      const extension = path.extname(archivo.originalname).toLowerCase() || ".png";
+      cb(null, `${subcarpeta}-${Date.now()}${extension}`);
+    },
+  });
+}
+
+function crearUploaderImagen(subcarpeta) {
+  return multer({
+    storage: crearStorageImagenRestaurante(subcarpeta),
+    limits: { fileSize: 3 * 1024 * 1024 }, // 3 MB
+    fileFilter: (_req, archivo, cb) => {
+      if (!TIPOS_IMAGEN_PERMITIDOS.includes(archivo.mimetype)) {
+        return cb(new Error("Formato de imagen no permitido. Usa JPG, PNG, WEBP o SVG."));
+      }
+      cb(null, true);
+    },
+  });
+}
+
+const uploadLogo = crearUploaderImagen("logo");
+const uploadBanner = crearUploaderImagen("banner");
+
+// Elimina el archivo físico anterior (si existía) al reemplazar logo/banner.
+function borrarArchivoAnterior(rutaPublicaAnterior) {
+  if (!rutaPublicaAnterior) return;
+  const rutaAbsoluta = path.join(__dirname, rutaPublicaAnterior.replace(/^\//, ""));
+  fs.unlink(rutaAbsoluta, () => {}); // si no existe o falla, lo ignoramos
+}
 
 const pool = new Pool({
   user: process.env.DB_USER || "postgres",
@@ -197,6 +252,78 @@ app.get("/api/seed-passwords", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error al actualizar contraseñas." });
+  }
+});
+
+// ==========================
+// MI PERFIL (MP)
+// Disponible para los 3 roles — cada usuario ve solo su propia
+// información (se filtra por req.usuario.id, no por parámetro).
+// ==========================
+app.get("/api/mi-perfil", verificarToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT u.nombre, u.correo, u.estado, u.cedula, u.fecha_nacimiento,
+              u.genero, u.nacionalidad, u.telefono, u.created_at,
+              r.nombre AS rol, res.nombre AS restaurante_nombre
+        FROM usuarios u
+        JOIN roles r ON u.rol_id = r.id
+        JOIN restaurantes res ON u.restaurante_id = res.id
+        WHERE u.id = $1`,
+      [req.usuario.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado." });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener el perfil." });
+  }
+});
+
+// MP: edición de datos personales — cada usuario solo puede editar
+// su propia fila (req.usuario.id), sin importar su rol. No permite
+// tocar contraseña ni foto todavía (eso es aparte, más adelante).
+app.patch("/api/mi-perfil", verificarToken, async (req, res) => {
+  const { nombre, correo, telefono, cedula, fecha_nacimiento, genero, nacionalidad } = req.body;
+
+  if (!nombre || !nombre.trim()) {
+    return res.status(400).json({ error: "El nombre es requerido." });
+  }
+  if (!correo || !correo.trim()) {
+    return res.status(400).json({ error: "El correo es requerido." });
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(correo)) {
+    return res.status(400).json({ error: "El formato del correo no es válido." });
+  }
+
+  try {
+    const existeCorreo = await pool.query(
+      "SELECT id FROM usuarios WHERE correo = $1 AND id != $2",
+      [correo, req.usuario.id]
+    );
+    if (existeCorreo.rows.length > 0) {
+      return res.status(400).json({ error: "Ya existe otra cuenta con ese correo." });
+    }
+
+    const result = await pool.query(
+      `UPDATE usuarios
+       SET nombre = $1, correo = $2, telefono = $3, cedula = $4,
+           fecha_nacimiento = $5, genero = $6, nacionalidad = $7
+       WHERE id = $8
+       RETURNING nombre, correo, telefono, cedula, fecha_nacimiento, genero, nacionalidad`,
+      [
+        nombre.trim(), correo.trim(), telefono || null, cedula || null,
+        fecha_nacimiento || null, genero || null, nacionalidad || null,
+        req.usuario.id,
+      ]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al actualizar el perfil." });
   }
 });
 
@@ -1020,33 +1147,42 @@ app.delete("/api/personal/:id", verificarToken, verificarRol("ADMIN"), async (re
 });
 
 // ==========================
-// CONFIGURACIÓN DEL RESTAURANTE (MG-47)
+// CONFIGURACIÓN DEL RESTAURANTE (MG-47, MG-56)
 // Ficha del restaurante del admin autenticado: nombre, sucursal,
-// dirección, contacto, horario y estado del local. Nada de esto se
-// comparte entre restaurantes — siempre se filtra por restaurante_id.
+// dirección, contacto, horario, identidad visual (logo/banner/color)
+// y estado del local. Nada de esto se comparte entre restaurantes —
+// siempre se filtra por restaurante_id.
 // ==========================
-app.get("/api/restaurante", verificarToken, verificarRol("ADMIN"), async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT id, nombre, sucursal, direccion, ruc, correo, telefono,
-              responsable, hora_apertura, hora_cierre, estado
-       FROM restaurantes WHERE id = $1`,
-      [req.usuario.restaurante_id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Restaurante no encontrado." });
+app.get(
+  "/api/restaurante",
+  verificarToken,
+  // MG-56: cualquier rol necesita poder leer el logo/color para pintar
+  // el sidebar; solo ADMIN puede editar (ver PUT/POST más abajo).
+  verificarRol("ADMIN", "COCINERO", "DESPACHADOR"),
+  async (req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT id, nombre, sucursal, direccion, ruc, correo, telefono,
+                responsable, hora_apertura, hora_cierre, estado,
+                logo, banner, color_primario
+         FROM restaurantes WHERE id = $1`,
+        [req.usuario.restaurante_id]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Restaurante no encontrado." });
+      }
+      res.json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Error al obtener la información del restaurante." });
     }
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error al obtener la información del restaurante." });
   }
-});
+);
 
 app.put("/api/restaurante", verificarToken, verificarRol("ADMIN"), async (req, res) => {
   const {
     nombre, sucursal, direccion, correo, telefono,
-    responsable, hora_apertura, hora_cierre, estado,
+    responsable, hora_apertura, hora_cierre, estado, color_primario,
   } = req.body;
 
   if (!nombre || !direccion) {
@@ -1061,19 +1197,25 @@ app.put("/api/restaurante", verificarToken, verificarRol("ADMIN"), async (req, r
   if (estado && !["Abierto", "Cerrado", "En mantenimiento"].includes(estado)) {
     return res.status(400).json({ error: "Estado del local no válido." });
   }
+  // MG-56: color principal de la identidad visual, en formato hex (#RRGGBB).
+  if (color_primario && !/^#[0-9A-Fa-f]{6}$/.test(color_primario)) {
+    return res.status(400).json({ error: "El color principal debe ser un hex válido, ej: #ff7a1a." });
+  }
 
   try {
     const result = await pool.query(
       `UPDATE restaurantes
        SET nombre=$1, sucursal=$2, direccion=$3, correo=$4, telefono=$5,
-           responsable=$6, hora_apertura=$7, hora_cierre=$8, estado=$9
-       WHERE id=$10
+           responsable=$6, hora_apertura=$7, hora_cierre=$8, estado=$9,
+           color_primario=$10
+       WHERE id=$11
        RETURNING id, nombre, sucursal, direccion, ruc, correo, telefono,
-                 responsable, hora_apertura, hora_cierre, estado`,
+                 responsable, hora_apertura, hora_cierre, estado,
+                 logo, banner, color_primario`,
       [
         nombre, sucursal || null, direccion, correo || null, telefono || null,
         responsable || null, hora_apertura || null, hora_cierre || null,
-        estado || "Abierto", req.usuario.restaurante_id,
+        estado || "Abierto", color_primario || "#ff7a1a", req.usuario.restaurante_id,
       ]
     );
     if (result.rows.length === 0) {
@@ -1085,6 +1227,80 @@ app.put("/api/restaurante", verificarToken, verificarRol("ADMIN"), async (req, r
     res.status(500).json({ error: "Error al actualizar la información del restaurante." });
   }
 });
+
+// MG-56: subir/reemplazar el logo del restaurante.
+app.post(
+  "/api/restaurante/logo",
+  verificarToken,
+  verificarRol("ADMIN"),
+  (req, res) => {
+    uploadLogo.single("logo")(req, res, async (err) => {
+      if (err) {
+        return res.status(400).json({ error: err.message || "No se pudo subir el logo." });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: "No se recibió ningún archivo." });
+      }
+      try {
+        const rutaPublica = `/uploads/restaurantes/${req.usuario.restaurante_id}/${req.file.filename}`;
+
+        const anterior = await pool.query(
+          "SELECT logo FROM restaurantes WHERE id = $1",
+          [req.usuario.restaurante_id]
+        );
+
+        const result = await pool.query(
+          "UPDATE restaurantes SET logo = $1 WHERE id = $2 RETURNING logo",
+          [rutaPublica, req.usuario.restaurante_id]
+        );
+
+        borrarArchivoAnterior(anterior.rows[0]?.logo);
+
+        res.json({ mensaje: "Logo actualizado correctamente.", logo: result.rows[0].logo });
+      } catch (dbErr) {
+        console.error(dbErr);
+        res.status(500).json({ error: "Error al guardar el logo en la base de datos." });
+      }
+    });
+  }
+);
+
+// MG-56: subir/reemplazar el banner del restaurante.
+app.post(
+  "/api/restaurante/banner",
+  verificarToken,
+  verificarRol("ADMIN"),
+  (req, res) => {
+    uploadBanner.single("banner")(req, res, async (err) => {
+      if (err) {
+        return res.status(400).json({ error: err.message || "No se pudo subir el banner." });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: "No se recibió ningún archivo." });
+      }
+      try {
+        const rutaPublica = `/uploads/restaurantes/${req.usuario.restaurante_id}/${req.file.filename}`;
+
+        const anterior = await pool.query(
+          "SELECT banner FROM restaurantes WHERE id = $1",
+          [req.usuario.restaurante_id]
+        );
+
+        const result = await pool.query(
+          "UPDATE restaurantes SET banner = $1 WHERE id = $2 RETURNING banner",
+          [rutaPublica, req.usuario.restaurante_id]
+        );
+
+        borrarArchivoAnterior(anterior.rows[0]?.banner);
+
+        res.json({ mensaje: "Banner actualizado correctamente.", banner: result.rows[0].banner });
+      } catch (dbErr) {
+        console.error(dbErr);
+        res.status(500).json({ error: "Error al guardar el banner en la base de datos." });
+      }
+    });
+  }
+);
 
 // ==========================
 // ENTREGAS (MG-48)

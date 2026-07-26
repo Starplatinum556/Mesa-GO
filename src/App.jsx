@@ -74,7 +74,7 @@ function App() {
           <Route
             path="mi-perfil"
             element={
-              <RutaProtegida roles={["COCINERO"]}>
+              <RutaProtegida roles={["ADMIN", "COCINERO", "DESPACHADOR"]}>
                 <MiPerfil />
               </RutaProtegida>
             }
