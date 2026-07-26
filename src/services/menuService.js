@@ -28,3 +28,24 @@ export async function crearORecuperarSesionCliente(
 
   return procesarRespuesta(respuesta);
 }
+// MG-57: crea o actualiza el pedido temporal
+// usando el carrito y la sesión activa del cliente.
+export async function guardarPedidoTemporal({
+  tokenSesion,
+  productos,
+  observaciones = "",
+}) {
+  const respuesta = await apiFetch(
+    "/api/pedidos-temporales",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        tokenSesion,
+        productos,
+        observaciones,
+      }),
+    }
+  );
+
+  return procesarRespuesta(respuesta);
+}
