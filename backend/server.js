@@ -1463,6 +1463,212 @@ app.post("/api/pedidos-temporales", async (req, res) => {
     client.release();
   }
 });
+// ==========================
+// VALIDACIÓN DE PAGOS (MG-60)
+// ==========================
+app.patch("/api/pedidos/:id/confirmar-pago", async (req, res) => {
+  const pedidoId = Number(req.params.id);
+
+  const {
+    tokenSesion,
+    metodoPago,
+    comprobante = null,
+  } = req.body || {};
+
+  if (!Number.isInteger(pedidoId) || pedidoId <= 0) {
+    return res.status(400).json({
+      error: "El identificador del pedido no es válido.",
+    });
+  }
+
+  if (
+    !tokenSesion ||
+    typeof tokenSesion !== "string" ||
+    tokenSesion.trim() === ""
+  ) {
+    return res.status(400).json({
+      error: "La sesión temporal es requerida.",
+    });
+  }
+
+  const metodosPermitidos = {
+    EFECTIVO: "Efectivo",
+    TARJETA: "Tarjeta",
+  };
+
+  const metodoNormalizado = String(metodoPago || "")
+    .trim()
+    .toUpperCase();
+
+  const metodoGuardado =
+    metodosPermitidos[metodoNormalizado];
+
+  if (!metodoGuardado) {
+    return res.status(400).json({
+      error:
+        "Método de pago no válido. Use Efectivo o Tarjeta.",
+    });
+  }
+
+  if (
+    comprobante !== null &&
+    (
+      typeof comprobante !== "string" ||
+      comprobante.trim().length > 255
+    )
+  ) {
+    return res.status(400).json({
+      error:
+        "El comprobante no puede superar 255 caracteres.",
+    });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // Expirar la sesión cuando ya terminó su vigencia.
+    await client.query(
+      `UPDATE sesiones_cliente
+       SET estado = 'EXPIRADA'
+       WHERE token = $1
+         AND estado = 'ACTIVA'
+         AND expira_en IS NOT NULL
+         AND expira_en <= CURRENT_TIMESTAMP`,
+      [tokenSesion.trim()]
+    );
+
+    // Buscar el pedido y comprobar que pertenece a la sesión.
+    const resultadoPedido = await client.query(
+      `SELECT
+         p.id,
+         p.codigo,
+         p.estado,
+         p.estado_pago,
+         p.pago_validado,
+         p.total,
+         p.mesa_id,
+         p.restaurante_id,
+         p.sesion_cliente_id
+       FROM pedidos p
+       JOIN sesiones_cliente sc
+         ON sc.id = p.sesion_cliente_id
+       WHERE p.id = $1
+         AND sc.token = $2
+         AND sc.estado = 'ACTIVA'
+         AND (
+           sc.expira_en IS NULL
+           OR sc.expira_en > CURRENT_TIMESTAMP
+         )
+       FOR UPDATE OF p, sc`,
+      [
+        pedidoId,
+        tokenSesion.trim(),
+      ]
+    );
+
+    if (resultadoPedido.rows.length === 0) {
+      await client.query("ROLLBACK");
+
+      return res.status(404).json({
+        error:
+          "El pedido no existe, no pertenece a la sesión o la sesión expiró.",
+      });
+    }
+
+    const pedido = resultadoPedido.rows[0];
+
+    // Evitar que un pedido sea pagado dos veces.
+    if (
+      pedido.pago_validado === true ||
+      String(pedido.estado_pago).toUpperCase() === "PAGADO"
+    ) {
+      await client.query("ROLLBACK");
+
+      return res.status(409).json({
+        error: "El pago de este pedido ya fue confirmado.",
+      });
+    }
+
+    // Solo se pueden confirmar pedidos temporales.
+    if (pedido.estado !== "TEMPORAL") {
+      await client.query("ROLLBACK");
+
+      return res.status(409).json({
+        error:
+          `No se puede pagar un pedido en estado "${pedido.estado}".`,
+      });
+    }
+
+    if (Number(pedido.total) <= 0) {
+      await client.query("ROLLBACK");
+
+      return res.status(400).json({
+        error: "El pedido no tiene un total válido.",
+      });
+    }
+
+    // Confirmar pago y enviar el pedido a cocina.
+    const resultadoActualizacion = await client.query(
+      `UPDATE pedidos
+       SET metodo_pago = $1,
+           estado_pago = 'PAGADO',
+           pago_validado = true,
+           estado = 'Nuevo',
+           comprobante = $2,
+           actualizado_en = CURRENT_TIMESTAMP
+       WHERE id = $3
+       RETURNING
+         id,
+         codigo,
+         mesa_id,
+         estado,
+         estado_pago,
+         metodo_pago,
+         pago_validado,
+         total,
+         comprobante,
+         actualizado_en`,
+      [
+        metodoGuardado,
+        comprobante?.trim() || null,
+        pedidoId,
+      ]
+    );
+
+    // La mesa queda ocupada al confirmar el pedido.
+    await client.query(
+      `UPDATE mesas
+       SET disponible = false
+       WHERE id = $1
+         AND restaurante_id = $2`,
+      [
+        pedido.mesa_id,
+        pedido.restaurante_id,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    return res.json({
+      mensaje:
+        "Pago confirmado. El pedido fue enviado a cocina.",
+      pedido: resultadoActualizacion.rows[0],
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    console.error("Error al confirmar el pago:", error);
+
+    return res.status(500).json({
+      error: "No se pudo confirmar el pago del pedido.",
+    });
+  } finally {
+    client.release();
+  }
+});
+
 // MG-40: detalle de un pedido — cada producto con su cantidad, precio
 // unitario y subtotal, para el modal "Ver detalle" del panel de cocina.
 // Mismo filtro de pago validado que la lista, por consistencia.
