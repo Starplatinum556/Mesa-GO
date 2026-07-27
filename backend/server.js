@@ -2134,6 +2134,272 @@ app.post(
 );
 
 // ==========================
+// REPORTES (MG-42 / MG-50)
+// Todo el rango de fechas se resuelve en el backend; el ADMIN solo
+// ve datos de SU restaurante (siempre filtrado por restaurante_id).
+// No requiere ninguna columna/tabla nueva: usa pedidos + detalle_pedido
+// + productos + categorias, que ya existen.
+// ==========================
+
+// Suma "dias" días a una fecha "YYYY-MM-DD" y devuelve otra "YYYY-MM-DD".
+function sumarDias(fechaTexto, dias) {
+  const fecha = new Date(`${fechaTexto}T00:00:00`);
+  fecha.setDate(fecha.getDate() + dias);
+  return fecha.toISOString().slice(0, 10);
+}
+
+// Diferencia en días (entero) entre dos fechas "YYYY-MM-DD".
+function diferenciaEnDias(desde, hasta) {
+  const msPorDia = 24 * 60 * 60 * 1000;
+  const a = new Date(`${desde}T00:00:00`);
+  const b = new Date(`${hasta}T00:00:00`);
+  return Math.round((b - a) / msPorDia);
+}
+
+// % de cambio entre dos valores; null si no hay base de comparación
+// (evita mostrar un "∞%" o un NaN cuando el período anterior fue 0).
+function calcularCambioPorcentual(actual, anterior) {
+  const actualNum = Number(actual) || 0;
+  const anteriorNum = Number(anterior) || 0;
+  if (anteriorNum === 0) return actualNum === 0 ? 0 : null;
+  return ((actualNum - anteriorNum) / anteriorNum) * 100;
+}
+
+function formatearHoraPico(hora) {
+  if (hora === null || hora === undefined) return null;
+  const inicio = hora % 24;
+  const fin = (hora + 1) % 24;
+  const formato = (h) => {
+    const periodo = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:00 ${periodo}`;
+  };
+  return `${formato(inicio)} - ${formato(fin)}`;
+}
+
+// Trae ventas totales, # de pedidos y # de mesas atendidas (distintas
+// por mesa+día) para un restaurante en un rango [desde, hastaExclusivo).
+async function obtenerKpisPeriodo(restauranteId, desde, hastaExclusivo) {
+  const result = await pool.query(
+    `SELECT
+       COALESCE(SUM(total), 0) AS ventas_totales,
+       COUNT(*) AS pedidos_realizados,
+       COUNT(DISTINCT (mesa_id, creado_en::date)) AS clientes_atendidos
+     FROM pedidos
+     WHERE restaurante_id = $1
+       AND pago_validado = true
+       AND creado_en >= $2 AND creado_en < $3`,
+    [restauranteId, desde, hastaExclusivo]
+  );
+  const fila = result.rows[0];
+  const ventasTotales = Number(fila.ventas_totales) || 0;
+  const pedidosRealizados = Number(fila.pedidos_realizados) || 0;
+  return {
+    ventasTotales,
+    pedidosRealizados,
+    clientesAtendidos: Number(fila.clientes_atendidos) || 0,
+    ticketPromedio: pedidosRealizados > 0 ? ventasTotales / pedidosRealizados : 0,
+  };
+}
+
+app.get("/api/reportes", verificarToken, verificarRol("ADMIN"), async (req, res) => {
+  try {
+    const restauranteId = req.usuario.restaurante_id;
+
+    // Por defecto: últimos 7 días (incluyendo hoy). El front puede
+    // mandar ?desde=YYYY-MM-DD&hasta=YYYY-MM-DD para otro rango.
+    const hoy = new Date().toISOString().slice(0, 10);
+    const hasta = req.query.hasta || hoy;
+    const desde = req.query.desde || sumarDias(hasta, -6);
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(desde) || !/^\d{4}-\d{2}-\d{2}$/.test(hasta)) {
+      return res.status(400).json({ error: "Formato de fecha inválido. Usa YYYY-MM-DD." });
+    }
+    if (desde > hasta) {
+      return res.status(400).json({ error: "La fecha 'desde' no puede ser posterior a 'hasta'." });
+    }
+
+    const hastaExclusivo = sumarDias(hasta, 1); // incluye todo el día "hasta"
+    const duracionDias = diferenciaEnDias(desde, hasta) + 1;
+
+    // Período anterior: mismo número de días, justo antes de "desde".
+    const desdeAnterior = sumarDias(desde, -duracionDias);
+    const hastaAnteriorExclusivo = desde;
+
+    const [kpisActual, kpisAnterior] = await Promise.all([
+      obtenerKpisPeriodo(restauranteId, desde, hastaExclusivo),
+      obtenerKpisPeriodo(restauranteId, desdeAnterior, hastaAnteriorExclusivo),
+    ]);
+
+    const ticketPromedioAnterior =
+      kpisAnterior.pedidosRealizados > 0
+        ? kpisAnterior.ventasTotales / kpisAnterior.pedidosRealizados
+        : 0;
+
+    const kpis = {
+      ...kpisActual,
+      cambioVentas: calcularCambioPorcentual(kpisActual.ventasTotales, kpisAnterior.ventasTotales),
+      cambioPedidos: calcularCambioPorcentual(kpisActual.pedidosRealizados, kpisAnterior.pedidosRealizados),
+      cambioClientes: calcularCambioPorcentual(kpisActual.clientesAtendidos, kpisAnterior.clientesAtendidos),
+      cambioTicket: calcularCambioPorcentual(kpisActual.ticketPromedio, ticketPromedioAnterior),
+    };
+
+    // Ventas por día (se completan los días sin pedidos con $0, para
+    // que el gráfico de línea no tenga huecos).
+    const resVentasPorDia = await pool.query(
+      `SELECT creado_en::date AS fecha, SUM(total) AS total
+       FROM pedidos
+       WHERE restaurante_id = $1 AND pago_validado = true
+         AND creado_en >= $2 AND creado_en < $3
+       GROUP BY creado_en::date
+       ORDER BY fecha`,
+      [restauranteId, desde, hastaExclusivo]
+    );
+    const ventasPorDiaMapa = new Map(
+      resVentasPorDia.rows.map((fila) => [
+        fila.fecha.toISOString().slice(0, 10),
+        Number(fila.total),
+      ])
+    );
+    const ventasPorDia = [];
+    for (let i = 0; i < duracionDias; i++) {
+      const fecha = sumarDias(desde, i);
+      ventasPorDia.push({ fecha, total: ventasPorDiaMapa.get(fecha) || 0 });
+    }
+
+    // Ventas por categoría.
+    const resVentasPorCategoria = await pool.query(
+      `SELECT COALESCE(c.nombre, 'Sin categoría') AS categoria,
+              SUM(dp.cantidad * dp.precio_unitario) AS total
+       FROM detalle_pedido dp
+       JOIN pedidos p ON p.id = dp.pedido_id
+       LEFT JOIN productos pr ON pr.id = dp.producto_id
+       LEFT JOIN categorias c ON c.id = pr.categoria_id
+       WHERE p.restaurante_id = $1 AND p.pago_validado = true
+         AND p.creado_en >= $2 AND p.creado_en < $3
+       GROUP BY c.nombre
+       ORDER BY total DESC`,
+      [restauranteId, desde, hastaExclusivo]
+    );
+    const totalCategorias = resVentasPorCategoria.rows.reduce(
+      (acumulado, fila) => acumulado + Number(fila.total), 0
+    );
+    const ventasPorCategoria = resVentasPorCategoria.rows.map((fila) => ({
+      categoria: fila.categoria,
+      total: Number(fila.total),
+      porcentaje: totalCategorias > 0 ? (Number(fila.total) / totalCategorias) * 100 : 0,
+    }));
+
+    // Top 5 productos más vendidos (por monto vendido).
+    const resTopProductos = await pool.query(
+      `SELECT pr.nombre,
+              pr.imagen,
+              SUM(dp.cantidad) AS cantidad,
+              SUM(dp.cantidad * dp.precio_unitario) AS total
+      FROM detalle_pedido dp
+      JOIN pedidos p ON p.id = dp.pedido_id
+      JOIN productos pr ON pr.id = dp.producto_id
+      WHERE p.restaurante_id = $1 AND p.pago_validado = true
+        AND p.creado_en >= $2 AND p.creado_en < $3
+      GROUP BY pr.id, pr.nombre, pr.imagen
+      ORDER BY total DESC
+      LIMIT 5`,
+      [restauranteId, desde, hastaExclusivo]
+    );
+    const totalProductosVendidos = resTopProductos.rows.reduce(
+      (acumulado, fila) => acumulado + Number(fila.total), 0
+    );
+    const productosMasVendidos = resTopProductos.rows.map((fila) => ({
+      nombre: fila.nombre,
+      imagen: fila.imagen,
+      cantidad: Number(fila.cantidad),
+      total: Number(fila.total),
+      porcentaje: totalProductosVendidos > 0 ? (Number(fila.total) / totalProductosVendidos) * 100 : 0,
+    }));
+
+    // Métodos de pago (se normaliza mayúsculas/minúsculas: "Tarjeta" y
+    // "TARJETA" cuentan como el mismo método).
+    const resMetodosPago = await pool.query(
+      `SELECT UPPER(TRIM(COALESCE(metodo_pago, 'Otros'))) AS metodo,
+              SUM(total) AS total
+       FROM pedidos
+       WHERE restaurante_id = $1 AND pago_validado = true
+         AND creado_en >= $2 AND creado_en < $3
+       GROUP BY UPPER(TRIM(COALESCE(metodo_pago, 'Otros')))
+       ORDER BY total DESC`,
+      [restauranteId, desde, hastaExclusivo]
+    );
+    const NOMBRE_METODO_PAGO = {
+      EFECTIVO: "Efectivo",
+      TARJETA: "Tarjeta",
+      TRANSFERENCIA: "Transferencia",
+      OTROS: "Otros",
+    };
+    const totalMetodosPago = resMetodosPago.rows.reduce(
+      (acumulado, fila) => acumulado + Number(fila.total), 0
+    );
+    const metodosPago = resMetodosPago.rows.map((fila) => ({
+      metodo: NOMBRE_METODO_PAGO[fila.metodo] || fila.metodo,
+      total: Number(fila.total),
+      porcentaje: totalMetodosPago > 0 ? (Number(fila.total) / totalMetodosPago) * 100 : 0,
+    }));
+
+    // Hora pico (por monto vendido).
+    const resHoraPico = await pool.query(
+      `SELECT EXTRACT(HOUR FROM creado_en)::int AS hora, SUM(total) AS total
+       FROM pedidos
+       WHERE restaurante_id = $1 AND pago_validado = true
+         AND creado_en >= $2 AND creado_en < $3
+       GROUP BY hora
+       ORDER BY total DESC
+       LIMIT 1`,
+      [restauranteId, desde, hastaExclusivo]
+    );
+
+    // Pedidos cancelados (por si en el futuro se agrega ese estado;
+    // hoy puede dar 0 y está bien).
+    const resCancelados = await pool.query(
+      `SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
+       FROM pedidos
+       WHERE restaurante_id = $1 AND estado ILIKE 'cancelad%'
+         AND creado_en >= $2 AND creado_en < $3`,
+      [restauranteId, desde, hastaExclusivo]
+    );
+
+    const diasConVentas = ventasPorDia.filter((dia) => dia.total > 0);
+    const diaMasVentas = diasConVentas.length
+      ? diasConVentas.reduce((mejor, actual) => (actual.total > mejor.total ? actual : mejor))
+      : null;
+    const diaMenosVentas = diasConVentas.length
+      ? diasConVentas.reduce((peor, actual) => (actual.total < peor.total ? actual : peor))
+      : null;
+
+    res.json({
+      periodo: { desde, hasta },
+      kpis,
+      ventasPorDia,
+      ventasPorCategoria,
+      productosMasVendidos,
+      metodosPago,
+      resumen: {
+        diaMasVentas,
+        diaMenosVentas,
+        horaPico: resHoraPico.rows.length
+          ? { hora: resHoraPico.rows[0].hora, texto: formatearHoraPico(resHoraPico.rows[0].hora), total: Number(resHoraPico.rows[0].total) }
+          : null,
+        pedidosCancelados: {
+          cantidad: Number(resCancelados.rows[0].cantidad) || 0,
+          total: Number(resCancelados.rows[0].total) || 0,
+        },
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al generar el reporte." });
+  }
+});
+
+// ==========================
 // CONFIGURACIÓN DEL RESTAURANTE (MG-47, MG-56)
 // Ficha del restaurante del admin autenticado: nombre, sucursal,
 // dirección, contacto, horario, identidad visual (logo/banner/color)
