@@ -325,8 +325,12 @@ function Entregas() {
     if (!detalle) return;
     setAplicandoAccion(true);
     try {
-      await completarServicio(detalle.id);
-      toast.success(`Servicio completado. Mesa ${detalle.mesa} liberada.`);
+     const respuesta = await completarServicio(detalle.id);
+
+      toast.success(
+        respuesta?.mensaje ||
+          `Servicio completado para la Mesa ${detalle.mesa}.`
+      );
       setDetalle(null);
       setModoDetalle("ver");
       await cargar();
