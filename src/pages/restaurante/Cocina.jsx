@@ -303,8 +303,11 @@ function Cocina() {
                         <span className={claseEstado(pedido.estado)}>{pedido.estado}</span>
                       </td>
                       <td>
-                        <button className="btn-ver-detalle" onClick={(evento) => abrirDetalle(pedido, evento)}>
-                          Detalles
+                        <button
+                          className="btn-ver-detalle"
+                          onClick={(evento) => abrirDetalle(pedido, evento)}
+                        >
+                          Ver ticket
                         </button>
                       </td>
                     </tr>
@@ -323,12 +326,12 @@ function Cocina() {
                 className="detalle-pedido"
                 role="dialog"
                 aria-modal="true"
-                aria-label="Detalle del pedido"
+                aria-label="Ticket de cocina"
                 tabIndex={-1}
                 ref={panelRef}
               >
                 <div className="detalle-header">
-                  <h2>Detalle del pedido</h2>
+                  <h2>Ticket de cocina</h2>
                   <button onClick={cerrarDetalle} aria-label="Cerrar">✕</button>
                 </div>
 
