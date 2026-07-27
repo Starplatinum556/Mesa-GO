@@ -1690,15 +1690,23 @@ app.get("/api/pedidos/:id", verificarToken, verificarRol("ADMIN", "COCINERO", "D
     }
 
     const itemsResult = await pool.query(
-      `SELECT pr.nombre, dp.cantidad, dp.precio_unitario,
-              (dp.cantidad * dp.precio_unitario) AS subtotal
-       FROM detalle_pedido dp
-       JOIN productos pr ON pr.id = dp.producto_id
-       WHERE dp.pedido_id = $1
-       ORDER BY pr.nombre`,
+      `SELECT
+          dp.id,
+          pr.id AS producto_id,
+          pr.nombre,
+          pr.categoria,
+          dp.cantidad,
+          dp.precio_unitario,
+          (dp.cantidad * dp.precio_unitario) AS subtotal
+      FROM detalle_pedido dp
+      JOIN productos pr
+        ON pr.id = dp.producto_id
+      WHERE dp.pedido_id = $1
+      ORDER BY
+        COALESCE(pr.categoria, ''),
+        pr.nombre`,
       [id]
     );
-
     res.json({ ...pedidoResult.rows[0], items: itemsResult.rows });
   } catch (err) {
     console.error(err);
