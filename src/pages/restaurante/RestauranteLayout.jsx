@@ -177,7 +177,7 @@ function RestauranteLayout() {
   const cerrarSesion = () => {
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("usuarioMesaGo");
-    navigate("/login");
+    navigate("/..");
   };
 
   return (
