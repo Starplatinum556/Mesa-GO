@@ -1,12 +1,4 @@
-import { apiFetch } from "../api";
-
-async function procesarRespuesta(respuesta) {
-  const datos = await respuesta.json();
-  if (!respuesta.ok) {
-    throw new Error(datos.error || "Ocurrió un error con las mesas");
-  }
-  return datos;
-}
+import { apiFetch, apiFetchArchivo, procesarRespuesta } from "../api";
 
 export async function obtenerMesas() {
   const respuesta = await apiFetch("/api/mesas");
@@ -34,4 +26,12 @@ export async function eliminarMesa(id) {
     method: "DELETE",
   });
   return procesarRespuesta(respuesta);
+}
+
+export async function subirImagenMesa(id, archivo) {
+  const formData = new FormData();
+  formData.append("imagen", archivo);
+ 
+  const respuesta = await apiFetchArchivo(`/api/mesas/${id}/imagen`, formData);
+  return procesarRespuesta(respuesta, "No se pudo subir la imagen de la mesa.");
 }

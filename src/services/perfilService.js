@@ -40,3 +40,21 @@ export async function actualizarMiPerfil(datos) {
   });
   return manejarRespuesta(res);
 }
+
+// POST /api/mi-perfil/foto — sube/reemplaza la foto de perfil.
+// No usa authHeaders() porque esa función fija "Content-Type: application/json";
+// con FormData el navegador arma el multipart/form-data con su boundary solo.
+export async function subirFotoPerfil(archivo) {
+  const token = sessionStorage.getItem("token");
+  const formData = new FormData();
+  formData.append("foto", archivo);
+
+  const res = await fetch(`${API_URL}/mi-perfil/foto`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+  return manejarRespuesta(res);
+}

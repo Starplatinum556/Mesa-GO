@@ -343,22 +343,26 @@ function Configuracion() {
                   <ImageIcon size={26} />
                 )}
               </div>
-              <input
-                ref={inputLogoRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/svg+xml"
-                onChange={manejarSeleccionLogo}
-                hidden
-              />
-              <button
-                type="button"
-                className="btn-secundario btn-subir-imagen"
-                onClick={() => inputLogoRef.current?.click()}
-                disabled={subiendoLogo}
-              >
-                <Upload size={16} />
-                {subiendoLogo ? "Subiendo..." : datos.logo ? "Cambiar logo" : "Subir logo"}
-              </button>
+              {editando && (
+                <>
+                  <input
+                    ref={inputLogoRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                    onChange={manejarSeleccionLogo}
+                    hidden
+                  />
+                  <button
+                    type="button"
+                    className="btn-secundario btn-subir-imagen"
+                    onClick={() => inputLogoRef.current?.click()}
+                    disabled={subiendoLogo}
+                  >
+                    <Upload size={16} />
+                    {subiendoLogo ? "Subiendo..." : datos.logo ? "Cambiar logo" : "Subir logo"}
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="identidad-item">
@@ -370,22 +374,26 @@ function Configuracion() {
                   <ImageIcon size={26} />
                 )}
               </div>
-              <input
-                ref={inputBannerRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/svg+xml"
-                onChange={manejarSeleccionBanner}
-                hidden
-              />
-              <button
-                type="button"
-                className="btn-secundario btn-subir-imagen"
-                onClick={() => inputBannerRef.current?.click()}
-                disabled={subiendoBanner}
-              >
-                <Upload size={16} />
-                {subiendoBanner ? "Subiendo..." : datos.banner ? "Cambiar banner" : "Subir banner"}
-              </button>
+              {editando && (
+                <>
+                  <input
+                    ref={inputBannerRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                    onChange={manejarSeleccionBanner}
+                    hidden
+                  />
+                  <button
+                    type="button"
+                    className="btn-secundario btn-subir-imagen"
+                    onClick={() => inputBannerRef.current?.click()}
+                    disabled={subiendoBanner}
+                  >
+                    <Upload size={16} />
+                    {subiendoBanner ? "Subiendo..." : datos.banner ? "Cambiar banner" : "Subir banner"}
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="identidad-item">
@@ -409,8 +417,9 @@ function Configuracion() {
           </div>
 
           <p className="identidad-nota">
-            Formatos permitidos: JPG, PNG, WEBP o SVG — máximo 3 MB. El logo y el banner se
-            guardan de inmediato; el color principal se guarda junto con "Guardar cambios".
+            {editando
+              ? "Formatos permitidos: JPG, PNG, WEBP o SVG — máximo 3 MB. El logo y el banner se guardan de inmediato al subirlos; el color principal se guarda junto con \"Guardar cambios\"."
+              : "Dale clic a \"Editar información del local\" para poder cambiar el logo, el banner o el color principal."}
           </p>
         </article>
 

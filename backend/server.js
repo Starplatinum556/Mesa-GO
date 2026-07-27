@@ -59,11 +59,135 @@ function crearUploaderImagen(subcarpeta) {
 const uploadLogo = crearUploaderImagen("logo");
 const uploadBanner = crearUploaderImagen("banner");
 
+function crearUploaderImagenMesa() {
+  const storage = multer.diskStorage({
+    destination: (req, _archivo, cb) => {
+      const carpetaMesas = path.join(
+        CARPETA_UPLOADS,
+        "restaurantes",
+        String(req.usuario.restaurante_id),
+        "mesas"
+      );
+      fs.mkdirSync(carpetaMesas, { recursive: true });
+      cb(null, carpetaMesas);
+    },
+    filename: (req, archivo, cb) => {
+      const extension = path.extname(archivo.originalname).toLowerCase() || ".png";
+      cb(null, `mesa-${req.params.id}-${Date.now()}${extension}`);
+    },
+  });
+ 
+  return multer({
+    storage,
+    limits: { fileSize: 3 * 1024 * 1024 },
+    fileFilter: (_req, archivo, cb) => {
+      if (!TIPOS_IMAGEN_PERMITIDOS.includes(archivo.mimetype)) {
+        return cb(new Error("Formato de imagen no permitido. Usa JPG, PNG, WEBP o SVG."));
+      }
+      cb(null, true);
+    },
+  });
+}
+ 
+const uploadImagenMesa = crearUploaderImagenMesa();
+
+function crearUploaderImagenProducto() {
+  const storage = multer.diskStorage({
+    destination: (req, _archivo, cb) => {
+      const carpetaProductos = path.join(
+        CARPETA_UPLOADS,
+        "restaurantes",
+        String(req.usuario.restaurante_id),
+        "productos"
+      );
+      fs.mkdirSync(carpetaProductos, { recursive: true });
+      cb(null, carpetaProductos);
+    },
+    filename: (req, archivo, cb) => {
+      const extension = path.extname(archivo.originalname).toLowerCase() || ".png";
+      cb(null, `producto-${req.params.id}-${Date.now()}${extension}`);
+    },
+  });
+ 
+  return multer({
+    storage,
+    limits: { fileSize: 3 * 1024 * 1024 }, // 3 MB, igual que logo/banner
+    fileFilter: (_req, archivo, cb) => {
+      if (!TIPOS_IMAGEN_PERMITIDOS.includes(archivo.mimetype)) {
+        return cb(new Error("Formato de imagen no permitido. Usa JPG, PNG, WEBP o SVG."));
+      }
+      cb(null, true);
+    },
+  });
+}
+ 
+const uploadImagenProducto = crearUploaderImagenProducto();
+
 // Elimina el archivo físico anterior (si existía) al reemplazar logo/banner.
 function borrarArchivoAnterior(rutaPublicaAnterior) {
   if (!rutaPublicaAnterior) return;
   const rutaAbsoluta = path.join(__dirname, rutaPublicaAnterior.replace(/^\//, ""));
   fs.unlink(rutaAbsoluta, () => {}); // si no existe o falla, lo ignoramos
+}
+
+function crearUploaderFotoEmpleado() {
+  const storage = multer.diskStorage({
+    destination: (req, _archivo, cb) => {
+      const carpetaEmpleado = path.join(
+        CARPETA_UPLOADS,
+        "restaurantes",
+        String(req.usuario.restaurante_id),
+        "personal"
+      );
+      fs.mkdirSync(carpetaEmpleado, { recursive: true });
+      cb(null, carpetaEmpleado);
+    },
+    filename: (req, archivo, cb) => {
+      const extension = path.extname(archivo.originalname).toLowerCase() || ".png";
+      cb(null, `empleado-${req.params.id}-${Date.now()}${extension}`);
+    },
+  });
+ 
+  return multer({
+    storage,
+    limits: { fileSize: 3 * 1024 * 1024 },
+    fileFilter: (_req, archivo, cb) => {
+      if (!TIPOS_IMAGEN_PERMITIDOS.includes(archivo.mimetype)) {
+        return cb(new Error("Formato de imagen no permitido. Usa JPG, PNG, WEBP o SVG."));
+      }
+      cb(null, true);
+    },
+  });
+}
+ 
+const uploadFotoEmpleado = crearUploaderFotoEmpleado();
+
+// MP: mismo patrón que crearUploaderImagen, pero la carpeta se arma
+// con el id del USUARIO en sesión (req.usuario.id) en vez del
+// restaurante — cada quien guarda su propia foto de perfil.
+function crearUploaderImagenUsuario() {
+  const storage = multer.diskStorage({
+    destination: (req, _archivo, cb) => {
+      const carpetaUsuario = path.join(CARPETA_UPLOADS, "usuarios", String(req.usuario.id));
+      fs.mkdirSync(carpetaUsuario, { recursive: true });
+      cb(null, carpetaUsuario);
+    },
+    filename: (_req, archivo, cb) => {
+      const extension = path.extname(archivo.originalname).toLowerCase() || ".png";
+      cb(null, `foto-${Date.now()}${extension}`);
+    },
+  });
+
+  return multer({
+    storage,
+    limits: { fileSize: 3 * 1024 * 1024 }, // 3 MB
+    fileFilter: (_req, archivo, cb) => {
+      if (!TIPOS_IMAGEN_PERMITIDOS.includes(archivo.mimetype)) {
+        return cb(new Error("Formato de imagen no permitido. Usa JPG, PNG, WEBP o SVG."));
+      }
+      cb(null, true);
+    },
+  });
 }
 
 const pool = new Pool({
@@ -265,7 +389,7 @@ app.get("/api/mi-perfil", verificarToken, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.nombre, u.correo, u.estado, u.cedula, u.fecha_nacimiento,
-              u.genero, u.nacionalidad, u.telefono, u.created_at,
+              u.genero, u.nacionalidad, u.telefono, u.created_at, u.foto,
               r.nombre AS rol, res.nombre AS restaurante_nombre
         FROM usuarios u
         JOIN roles r ON u.rol_id = r.id
@@ -326,6 +450,43 @@ app.patch("/api/mi-perfil", verificarToken, async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Error al actualizar el perfil." });
   }
+});
+
+
+// MP: subir/reemplazar la foto de perfil del usuario en sesión.
+// Reutiliza el mismo patrón (multer + carpeta propia + borrar la
+// anterior) que ya usamos para el logo/banner del restaurante (MG-56),
+// pero organizado por usuario en vez de por restaurante.
+app.post("/api/mi-perfil/foto", verificarToken, (req, res) => {
+  const uploadFotoPerfil = crearUploaderImagenUsuario();
+  uploadFotoPerfil.single("foto")(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || "No se pudo subir la foto." });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: "No se recibió ningún archivo." });
+    }
+    try {
+      const rutaPublica = `/uploads/usuarios/${req.usuario.id}/${req.file.filename}`;
+
+      const anterior = await pool.query(
+        "SELECT foto FROM usuarios WHERE id = $1",
+        [req.usuario.id]
+      );
+
+      const result = await pool.query(
+        "UPDATE usuarios SET foto = $1 WHERE id = $2 RETURNING foto",
+        [rutaPublica, req.usuario.id]
+      );
+
+      borrarArchivoAnterior(anterior.rows[0]?.foto);
+
+      res.json({ mensaje: "Foto de perfil actualizada correctamente.", foto: result.rows[0].foto });
+    } catch (dbErr) {
+      console.error(dbErr);
+      res.status(500).json({ error: "Error al guardar la foto en la base de datos." });
+    }
+  });
 });
 
 // ==========================
@@ -554,6 +715,51 @@ app.delete("/api/mesas/:id", verificarToken, verificarRol("ADMIN"), async (req, 
     res.status(500).json({ error: "Error al eliminar mesa." });
   }
 });
+
+// ==========================
+// MESAS: subir/reemplazar imagen
+// ==========================
+app.post(
+  "/api/mesas/:id/imagen",
+  verificarToken,
+  verificarRol("ADMIN"),
+  (req, res) => {
+    uploadImagenMesa.single("imagen")(req, res, async (err) => {
+      if (err) {
+        return res.status(400).json({ error: err.message || "No se pudo subir la imagen." });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: "No se recibió ningún archivo." });
+      }
+ 
+      const { id } = req.params;
+      const rutaPublica = `/uploads/restaurantes/${req.usuario.restaurante_id}/mesas/${req.file.filename}`;
+ 
+      try {
+        const anterior = await pool.query(
+          "SELECT imagen FROM mesas WHERE id = $1 AND restaurante_id = $2",
+          [id, req.usuario.restaurante_id]
+        );
+ 
+        if (anterior.rows.length === 0) {
+          return res.status(404).json({ error: "Mesa no encontrada." });
+        }
+ 
+        const result = await pool.query(
+          "UPDATE mesas SET imagen = $1 WHERE id = $2 AND restaurante_id = $3 RETURNING *",
+          [rutaPublica, id, req.usuario.restaurante_id]
+        );
+ 
+        borrarArchivoAnterior(anterior.rows[0]?.imagen);
+ 
+        res.json({ mensaje: "Imagen actualizada correctamente.", mesa: result.rows[0] });
+      } catch (dbErr) {
+        console.error(dbErr);
+        res.status(500).json({ error: "Error al guardar la imagen en la base de datos." });
+      }
+    });
+  }
+);
 
 // ==========================
 // QR: OBTENER QR ACTUAL (MG-33)
@@ -844,6 +1050,53 @@ app.delete("/api/productos/:id", verificarToken, verificarRol("ADMIN"), async (r
     res.status(500).json({ error: "Error al eliminar producto." });
   }
 });
+
+// ==========================
+// PRODUCTOS: subir/reemplazar imagen
+// Igual patrón que logo/banner: se guarda en disco y solo la ruta
+// pública se guarda en la BD (columna productos.imagen).
+// ==========================
+app.post(
+  "/api/productos/:id/imagen",
+  verificarToken,
+  verificarRol("ADMIN"),
+  (req, res) => {
+    uploadImagenProducto.single("imagen")(req, res, async (err) => {
+      if (err) {
+        return res.status(400).json({ error: err.message || "No se pudo subir la imagen." });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: "No se recibió ningún archivo." });
+      }
+ 
+      const { id } = req.params;
+      const rutaPublica = `/uploads/restaurantes/${req.usuario.restaurante_id}/productos/${req.file.filename}`;
+ 
+      try {
+        const anterior = await pool.query(
+          "SELECT imagen FROM productos WHERE id = $1 AND restaurante_id = $2",
+          [id, req.usuario.restaurante_id]
+        );
+ 
+        if (anterior.rows.length === 0) {
+          return res.status(404).json({ error: "Producto no encontrado." });
+        }
+ 
+        const result = await pool.query(
+          "UPDATE productos SET imagen = $1 WHERE id = $2 AND restaurante_id = $3 RETURNING *",
+          [rutaPublica, id, req.usuario.restaurante_id]
+        );
+ 
+        borrarArchivoAnterior(anterior.rows[0]?.imagen);
+ 
+        res.json({ mensaje: "Imagen actualizada correctamente.", producto: result.rows[0] });
+      } catch (dbErr) {
+        console.error(dbErr);
+        res.status(500).json({ error: "Error al guardar la imagen en la base de datos." });
+      }
+    });
+  }
+);
 
 // ==========================
 // PEDIDOS (MG-47, MG-61, MG-40)
@@ -1341,7 +1594,7 @@ app.get("/api/menu/:codigoQr", async (req, res) => {
     // MG-65: la categoría ahora sale del JOIN con categorias (vía
     // categoria_id), ya no del texto libre que tenía productos.
     const resProductos = await pool.query(
-      `SELECT p.id, p.nombre, p.descripcion, p.precio, c.nombre AS categoria
+      `SELECT p.id, p.nombre, p.descripcion, p.precio, p.imagen AS foto, c.nombre AS categoria
        FROM productos p
        LEFT JOIN categorias c ON c.id = p.categoria_id
        WHERE p.restaurante_id = $1 AND p.disponible = true
@@ -1350,7 +1603,7 @@ app.get("/api/menu/:codigoQr", async (req, res) => {
     );
 
     const resRestaurante = await pool.query(
-      "SELECT nombre FROM restaurantes WHERE id = $1",
+      "SELECT nombre, logo, banner, color_primario FROM restaurantes WHERE id = $1",
       [mesa.restaurante_id]
     );
 
@@ -1510,7 +1763,8 @@ app.post("/api/sesiones-cliente", async (req, res) => {
 app.get("/api/personal", verificarToken, verificarRol("ADMIN"), async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT u.id, u.nombre, u.correo, u.estado, r.nombre AS rol
+      `SELECT u.id, u.nombre, u.correo, u.estado, u.foto, u.telefono,
+              u.created_at AS fecha_ingreso, r.nombre AS rol
        FROM usuarios u
        JOIN roles r ON u.rol_id = r.id
        WHERE u.restaurante_id = $1
@@ -1618,6 +1872,52 @@ app.delete("/api/personal/:id", verificarToken, verificarRol("ADMIN"), async (re
     res.status(500).json({ error: "Error al eliminar empleado." });
   }
 });
+
+// ==========================
+// PERSONAL: subir/reemplazar la foto de un empleado (la sube el ADMIN,
+// a diferencia de /api/mi-perfil/foto que cada quien usa para sí mismo).
+// ==========================
+app.post(
+  "/api/personal/:id/foto",
+  verificarToken,
+  verificarRol("ADMIN"),
+  (req, res) => {
+    uploadFotoEmpleado.single("foto")(req, res, async (err) => {
+      if (err) {
+        return res.status(400).json({ error: err.message || "No se pudo subir la foto." });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: "No se recibió ningún archivo." });
+      }
+ 
+      const { id } = req.params;
+      const rutaPublica = `/uploads/restaurantes/${req.usuario.restaurante_id}/personal/${req.file.filename}`;
+ 
+      try {
+        const anterior = await pool.query(
+          "SELECT foto FROM usuarios WHERE id = $1 AND restaurante_id = $2",
+          [id, req.usuario.restaurante_id]
+        );
+ 
+        if (anterior.rows.length === 0) {
+          return res.status(404).json({ error: "Empleado no encontrado." });
+        }
+ 
+        const result = await pool.query(
+          "UPDATE usuarios SET foto = $1 WHERE id = $2 AND restaurante_id = $3 RETURNING id, nombre, foto",
+          [rutaPublica, id, req.usuario.restaurante_id]
+        );
+ 
+        borrarArchivoAnterior(anterior.rows[0]?.foto);
+ 
+        res.json({ mensaje: "Foto actualizada correctamente.", empleado: result.rows[0] });
+      } catch (dbErr) {
+        console.error(dbErr);
+        res.status(500).json({ error: "Error al guardar la foto en la base de datos." });
+      }
+    });
+  }
+);
 
 // ==========================
 // CONFIGURACIÓN DEL RESTAURANTE (MG-47, MG-56)

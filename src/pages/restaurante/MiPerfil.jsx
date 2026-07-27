@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Calendar,
   Camera,
@@ -17,13 +17,30 @@ import {
   XCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { actualizarMiPerfil, obtenerMiPerfil } from "../../services/perfilService";
+import { urlImagen } from "../../api";
+import { actualizarMiPerfil, obtenerMiPerfil, subirFotoPerfil } from "../../services/perfilService";
 
 const NOMBRE_ROL = {
   ADMIN: "Administrador",
   COCINERO: "Cocinero",
   DESPACHADOR: "Despachador",
 };
+
+// MP: 3 MB, mismo límite que valida el backend (multer).
+const TAMANO_MAXIMO_IMAGEN = 3 * 1024 * 1024;
+const TIPOS_IMAGEN_PERMITIDOS = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
+
+function archivoValido(archivo) {
+  if (!TIPOS_IMAGEN_PERMITIDOS.includes(archivo.type)) {
+    toast.error("Formato no permitido. Usa JPG, PNG, WEBP o SVG.");
+    return false;
+  }
+  if (archivo.size > TAMANO_MAXIMO_IMAGEN) {
+    toast.error("La imagen no puede pesar más de 3 MB.");
+    return false;
+  }
+  return true;
+}
 
 /* ──────────────────────────────
    Helpers
@@ -139,6 +156,9 @@ function MiPerfil() {
   const [guardando, setGuardando] = useState(false);
   const [formulario, setFormulario] = useState(null);
 
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const inputFotoRef = useRef(null);
+
   useEffect(() => {
     let activo = true;
     obtenerMiPerfil()
@@ -199,6 +219,29 @@ function MiPerfil() {
     }
   };
 
+  // MP: subir/reemplazar la foto de perfil — acción independiente del
+  // formulario de edición, se guarda al toque (mismo criterio que
+  // logo/banner del restaurante en MG-56, pero acá no hace falta
+  // gatearlo detrás de "Editar" porque no comparte pantalla con otros
+  // campos de solo-lectura que puedan confundirse).
+  const manejarSeleccionFoto = async (evento) => {
+    const archivo = evento.target.files?.[0];
+    evento.target.value = ""; // permite volver a elegir el mismo archivo después
+    if (!archivo || !archivoValido(archivo)) return;
+
+    setSubiendoFoto(true);
+    try {
+      const { foto } = await subirFotoPerfil(archivo);
+      setPerfil((prev) => ({ ...prev, foto }));
+      sincronizarSesion({ foto });
+      toast.success("Foto de perfil actualizada.");
+    } catch (err) {
+      toast.error(err.message || "No se pudo subir la foto.");
+    } finally {
+      setSubiendoFoto(false);
+    }
+  };
+
   if (cargando) {
     return (
       <section className="modulo-admin">
@@ -254,18 +297,34 @@ function MiPerfil() {
           <div className="mp-card-body">
             <div className="mp-foto-bloque">
               <div className="mp-foto">
-                <div className="mp-foto-placeholder">
-                  <User size={48} />
-                </div>
-                {/* MP: subir foto real queda pendiente para más adelante */}
-                <button
-                  type="button"
-                  className="mp-foto-camara"
-                  aria-label="Cambiar foto de perfil (próximamente)"
-                  disabled
-                >
-                  <Camera size={16} />
-                </button>
+                {perfil.foto ? (
+                  <img src={urlImagen(perfil.foto)} alt="Tu foto de perfil" className="mp-foto-imagen" />
+                ) : (
+                  <div className="mp-foto-placeholder">
+                    <User size={48} />
+                  </div>
+                )}
+
+                {editando && (
+                  <>
+                    <input
+                      ref={inputFotoRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                      onChange={manejarSeleccionFoto}
+                      hidden
+                    />
+                    <button
+                      type="button"
+                      className="mp-foto-camara"
+                      aria-label="Cambiar foto de perfil"
+                      onClick={() => inputFotoRef.current?.click()}
+                      disabled={subiendoFoto}
+                    >
+                      <Camera size={16} />
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="mp-miembro-desde">
@@ -400,7 +459,7 @@ function MiPerfil() {
             </div>
 
             {/* MP: "Cambiar contraseña" todavía no está conectado —
-                queda para más adelante, junto con la foto. */}
+                queda para más adelante (MG-58). */}
             <FilaSeguridad
               label="Contraseña"
               value="**********"

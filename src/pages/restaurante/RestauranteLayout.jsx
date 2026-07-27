@@ -20,6 +20,7 @@ import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-route
 import { obtenerUsuarioSesion } from "../../components/RutaProtegida";
 import { urlImagen } from "../../api";
 import { obtenerRestaurante } from "../../services/restauranteService";
+import { obtenerMiPerfil } from "../../services/perfilService";
 
 // MG-48: ícono a medida para "Entregas" en el sidebar — una mano
 // sosteniendo una bandeja con el plato cubierto (cloche), en vez del
@@ -115,6 +116,12 @@ function RestauranteLayout() {
   // la topbar reflejen la identidad visual del negocio.
   const [marca, setMarca] = useState({ logo: null, color_primario: null });
 
+  // MP: foto de perfil del usuario en sesión, para el ícono de la
+  // topbar (arriba a la derecha) — se pide siempre al backend en vez
+  // de leerla de sessionStorage, así se ve actualizada aunque el
+  // usuario no haya vuelto a pasar por Mi Perfil en esta sesión.
+  const [fotoUsuario, setFotoUsuario] = useState(null);
+
   useEffect(() => {
     const intervalo = setInterval(() => setAhora(new Date()), 60000);
     return () => clearInterval(intervalo);
@@ -130,6 +137,14 @@ function RestauranteLayout() {
       })
       .catch(() => {
         // Si falla, el sidebar simplemente se queda con el ícono/color por defecto.
+      });
+  }, []);
+
+  useEffect(() => {
+    obtenerMiPerfil()
+      .then((perfil) => setFotoUsuario(perfil.foto))
+      .catch(() => {
+        // Si falla, la topbar simplemente se queda con el ícono genérico.
       });
   }, []);
 
@@ -241,7 +256,11 @@ function RestauranteLayout() {
             {!enMiPerfil && (
               <button className="admin-user">
                 <div className="admin-user-icon">
-                  <User size={19} />
+                  {fotoUsuario ? (
+                    <img src={urlImagen(fotoUsuario)} alt="Tu foto de perfil" />
+                  ) : (
+                    <User size={19} />
+                  )}
                 </div>
                 <div>
                   <strong>{usuario.nombre}</strong>

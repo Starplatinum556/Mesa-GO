@@ -1,4 +1,4 @@
-import { apiFetch, procesarRespuesta } from "../api";
+import { apiFetch, apiFetchArchivo, procesarRespuesta } from "../api";
 
 const MENSAJE_ERROR = "Ocurrió un error con los productos";
 
@@ -35,4 +35,18 @@ export async function cambiarDisponibilidadProducto(id) {
     method: "PATCH",
   });
   return procesarRespuesta(respuesta, MENSAJE_ERROR);
+}
+
+// ==========================
+// Subir/reemplazar la imagen de un producto.
+// Usa apiFetchArchivo (de api.js), que ya arma la URL completa con
+// BASE_URL y toma el token desde sessionStorage — igual que el resto
+// de tus services.
+// ==========================
+export async function subirImagenProducto(id, archivo) {
+  const formData = new FormData();
+  formData.append("imagen", archivo);
+
+  const respuesta = await apiFetchArchivo(`/api/productos/${id}/imagen`, formData);
+  return procesarRespuesta(respuesta, "No se pudo subir la imagen del producto.");
 }
