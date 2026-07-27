@@ -2387,40 +2387,136 @@ app.patch("/api/entregas/:id/entregar", verificarToken, verificarRol("ADMIN", "D
   }
 });
 
-app.patch("/api/entregas/:id/completar", verificarToken, verificarRol("ADMIN", "DESPACHADOR"), async (req, res) => {
-  const { id } = req.params;
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    const resPedido = await client.query(
-      `SELECT mesa_id FROM pedidos
-       WHERE id = $1 AND restaurante_id = $2 AND estado = 'Entregado'`,
-      [id, req.usuario.restaurante_id]
-    );
-    if (resPedido.rows.length === 0) {
+// MG-68: completa un pedido y libera la mesa únicamente
+// cuando ya no existen otros pedidos activos asociados a ella.
+app.patch(
+  "/api/entregas/:id/completar",
+  verificarToken,
+  verificarRol("ADMIN", "DESPACHADOR"),
+  async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      const resPedido = await client.query(
+        `SELECT id, mesa_id
+         FROM pedidos
+         WHERE id = $1
+           AND restaurante_id = $2
+           AND estado = 'Entregado'
+         FOR UPDATE`,
+        [id, req.usuario.restaurante_id]
+      );
+
+      if (resPedido.rows.length === 0) {
+        await client.query("ROLLBACK");
+
+        return res.status(400).json({
+          error: "El pedido no está en estado Entregado.",
+        });
+      }
+
+      const mesaId = resPedido.rows[0].mesa_id;
+
+      // Bloquear temporalmente la mesa para mantener
+      // consistente su estado durante la transacción.
+      await client.query(
+        `SELECT id
+         FROM mesas
+         WHERE id = $1
+           AND restaurante_id = $2
+         FOR UPDATE`,
+        [mesaId, req.usuario.restaurante_id]
+      );
+
+      await client.query(
+        `UPDATE pedidos
+         SET estado = 'Completado',
+             actualizado_en = NOW()
+         WHERE id = $1
+           AND restaurante_id = $2`,
+        [id, req.usuario.restaurante_id]
+      );
+
+      // Verificar si la mesa todavía tiene otros pedidos activos.
+      const resPedidosActivos = await client.query(
+        `SELECT COUNT(*)::int AS total
+         FROM pedidos
+         WHERE mesa_id = $1
+           AND restaurante_id = $2
+           AND id <> $3
+           AND pago_validado = true
+           AND estado NOT IN (
+             'Completado',
+             'Cancelado',
+             'No entregado'
+           )`,
+        [mesaId, req.usuario.restaurante_id, id]
+      );
+
+      const pedidosActivos = Number(
+        resPedidosActivos.rows[0].total
+      );
+
+      const mesaLiberada = pedidosActivos === 0;
+
+      if (mesaLiberada) {
+        await client.query(
+          `UPDATE mesas
+           SET disponible = true
+           WHERE id = $1
+             AND restaurante_id = $2`,
+          [mesaId, req.usuario.restaurante_id]
+        );
+
+        await client.query(
+          `UPDATE sesiones_cliente
+           SET estado = 'FINALIZADA'
+           WHERE mesa_id = $1
+             AND restaurante_id = $2
+             AND estado = 'ACTIVA'`,
+          [mesaId, req.usuario.restaurante_id]
+        );
+      } else {
+        // Mantener la mesa ocupada mientras tenga pedidos activos.
+        await client.query(
+          `UPDATE mesas
+           SET disponible = false
+           WHERE id = $1
+             AND restaurante_id = $2`,
+          [mesaId, req.usuario.restaurante_id]
+        );
+      }
+
+      await client.query("COMMIT");
+
+      return res.json({
+        mensaje: mesaLiberada
+          ? "Servicio completado. Mesa liberada."
+          : `Pedido completado. La mesa continúa ocupada porque tiene ${pedidosActivos} pedido${
+              pedidosActivos === 1 ? "" : "s"
+            } activo${pedidosActivos === 1 ? "" : "s"}.`,
+        mesa_liberada: mesaLiberada,
+        pedidos_activos: pedidosActivos,
+      });
+    } catch (err) {
       await client.query("ROLLBACK");
-      return res.status(400).json({ error: "El pedido no está en estado Entregado." });
+
+      console.error(
+        "Error al completar el servicio:",
+        err
+      );
+
+      return res.status(500).json({
+        error: "Error al completar el servicio.",
+      });
+    } finally {
+      client.release();
     }
-    const mesa_id = resPedido.rows[0].mesa_id;
-    await client.query(
-      `UPDATE pedidos SET estado = 'Completado', actualizado_en = NOW() WHERE id = $1`, [id]
-    );
-    await client.query(
-      `UPDATE mesas SET disponible = true WHERE id = $1`, [mesa_id]
-    );
-    await client.query(
-      `UPDATE sesiones_cliente SET estado = 'FINALIZADA'
-       WHERE mesa_id = $1 AND estado = 'ACTIVA'`, [mesa_id]
-    );
-    await client.query("COMMIT");
-    res.json({ mensaje: "Servicio completado. Mesa liberada." });
-  } catch (err) {
-    await client.query("ROLLBACK");
-    res.status(500).json({ error: "Error al completar el servicio." });
-  } finally {
-    client.release();
   }
-});
+);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
