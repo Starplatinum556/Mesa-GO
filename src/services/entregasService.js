@@ -6,7 +6,9 @@
 // Ajusta API_URL si tu backend no corre en localhost:4000 — puedes
 // definir VITE_API_URL en un archivo .env de Vite para no tocar
 // este archivo en cada entorno (local, producción, etc.).
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+import { BASE_URL } from "../api";
+
+const API_URL = `${BASE_URL}/api`;
 
 function authHeaders() {
   const token = sessionStorage.getItem("token");

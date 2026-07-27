@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { apiFetch } from "../api";
 
 const estiloWizard = {
   contenedor: {
@@ -89,7 +90,7 @@ function Registro() {
     }
     setCargando(true);
     try {
-      const respuesta = await fetch("http://localhost:4000/api/registro", {
+      const respuesta = await apiFetch("/api/registro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

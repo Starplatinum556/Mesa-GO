@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { apiFetch } from "../api";
 
 function Login() {
   const navigate = useNavigate();
@@ -19,8 +20,8 @@ function Login() {
     setCargando(true);
 
     try {
-      const respuesta = await fetch("http://localhost:4000/api/login", {
-        method: "POST",
+    const respuesta = await apiFetch("/api/login", {         
+   method: "POST",
         headers: {"Content-Type": "application/json","Authorization": `Bearer ${sessionStorage.getItem("token")}`},
         body: JSON.stringify({ correo, password }),
       });

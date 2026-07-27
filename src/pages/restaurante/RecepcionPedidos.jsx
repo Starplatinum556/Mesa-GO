@@ -28,7 +28,7 @@ function RecepcionPedidos() {
       })
       .catch((err) => {
         console.error(err);
-        setError("No se pudo conectar con el servidor (localhost:4000).");
+        setError("No se pudo conectar con el servidor de MesaGo.");
         setCargando(false);
       });
   }, []);

@@ -9,6 +9,8 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { verificarToken, verificarRol } = require("./middleware/auth");
 require("dotenv").config();
+const FRONTEND_URL =
+  process.env.FRONTEND_URL || "http://localhost:5173";
 
 const app = express();
 app.use(cors());
@@ -778,7 +780,7 @@ app.get("/api/mesas/:id/qr", verificarToken, verificarRol("ADMIN"), async (req, 
     if (!token) {
       return res.status(404).json({ error: "Esta mesa no tiene QR generado." });
     }
-    const url = `http://localhost:5173/menu/${token}`;
+    const url = `${FRONTEND_URL}/menu/${token}`;
     const QRCode = require("qrcode");
     const qrBase64 = await QRCode.toDataURL(url);
     res.json({ token, url, qr: qrBase64 });
@@ -794,7 +796,7 @@ app.post("/api/mesas/:id/qr", verificarToken, verificarRol("ADMIN"), async (req,
   const { id } = req.params;
   try {
     const token = `MESA-${id}-${Date.now()}`;
-    const url = `http://localhost:5173/menu/${token}`;
+    const url = `${FRONTEND_URL}/menu/${token}`;
 
     await pool.query(
       "UPDATE mesas SET qr_codigo = $1 WHERE id = $2 AND restaurante_id = $3",
@@ -2785,6 +2787,8 @@ app.patch(
 );
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Backend MesaGo corriendo en http://localhost:${PORT}`);
+const HOST = "0.0.0.0";
+
+app.listen(PORT, HOST, () => {
+  console.log(`Backend MesaGo disponible en http://${HOST}:${PORT}`);
 });
