@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Image as ImageIcon, Package, PackageCheck, PackageX, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import Paginacion from "../../components/Paginacion";
+import { urlImagen } from "../../api";
 import { cambiarDisponibilidadProducto, obtenerProductos } from "../../services/productosService";
 
 const PRODUCTOS_POR_PAGINA = 8;
@@ -61,8 +62,10 @@ function DisponibilidadProductos() {
   const disponibles = productos.filter((p) => p.disponible);
   const agotados = productos.filter((p) => !p.disponible);
 
+  // Desde MG-65 el backend devuelve "categoria_nombre" (la categoría
+  // ahora es una FK, categoria_id). Antes era "categoria" a secas.
   const categorias = useMemo(() => {
-    return ["Todas", ...new Set(productos.map((p) => p.categoria))];
+    return ["Todas", ...new Set(productos.map((p) => p.categoria_nombre).filter(Boolean))];
   }, [productos]);
 
   // MG-40: el orden pedido es Todos -> Disponibles -> Agotados.
@@ -75,7 +78,7 @@ function DisponibilidadProductos() {
   const productosFiltrados = useMemo(() => {
     return productosPorPestana.filter((producto) => {
       const coincideBusqueda = producto.nombre.toLowerCase().includes(busqueda.toLowerCase());
-      const coincideCategoria = categoria === "Todas" || producto.categoria === categoria;
+      const coincideCategoria = categoria === "Todas" || producto.categoria_nombre === categoria;
       return coincideBusqueda && coincideCategoria;
     });
   }, [productosPorPestana, busqueda, categoria]);
@@ -236,7 +239,15 @@ function DisponibilidadProductos() {
                   <td>
                     <div className="celda-producto">
                       <div className="producto-imagen-espacio">
-                        <ImageIcon size={18} />
+                        {producto.imagen ? (
+                          <img
+                            src={urlImagen(producto.imagen)}
+                            alt={producto.nombre}
+                            className="producto-imagen-miniatura"
+                          />
+                        ) : (
+                          <ImageIcon size={18} />
+                        )}
                       </div>
                       <div>
                         <strong>{producto.nombre}</strong>
@@ -245,8 +256,8 @@ function DisponibilidadProductos() {
                     </div>
                   </td>
                   <td>
-                    <span className={`badge-categoria ${colorDeCategoria(producto.categoria)}`}>
-                      {producto.categoria}
+                    <span className={`badge-categoria ${colorDeCategoria(producto.categoria_nombre)}`}>
+                      {producto.categoria_nombre || "Sin categoría"}
                     </span>
                   </td>
                   <td>

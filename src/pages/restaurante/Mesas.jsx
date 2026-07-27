@@ -1,8 +1,14 @@
-import { apiFetch } from "../../api";
+import { apiFetch, urlImagen } from "../../api";
 import { useEffect, useState } from "react";
-import { Plus, QrCode, Table2, Trash2, Edit, Users, MapPin } from "lucide-react";
+import { Calendar, Edit, ImageOff, MapPin, Plus, QrCode, Table2, Trash2, Users } from "lucide-react";
 import toast from "react-hot-toast";
-import { obtenerMesas, crearMesa, actualizarMesa, eliminarMesa } from "../../services/mesasService";
+import {
+  obtenerMesas,
+  crearMesa,
+  actualizarMesa,
+  eliminarMesa,
+  subirImagenMesa,
+} from "../../services/mesasService";
 import { obtenerZonas } from "../../services/zonasService";
 import Modal from "../../components/Modal";
 import MesaForm from "../../components/MesaForm";
@@ -64,19 +70,29 @@ function Mesas() {
     setMesaEditar(null);
   };
 
-  const manejarGuardar = async (datos) => {
+  const manejarGuardar = async (datos, archivoImagen) => {
     try {
       const payload = {
         ...datos,
         disponible: datos.estado === "DISPONIBLE",
       };
-      if (mesaEditar) {
-        await actualizarMesa(mesaEditar.id, payload);
-        toast.success("Mesa actualizada correctamente.");
-      } else {
-        await crearMesa(payload);
-        toast.success("Mesa creada correctamente.");
+
+      const mesa = mesaEditar
+        ? await actualizarMesa(mesaEditar.id, payload)
+        : await crearMesa(payload);
+
+      // El backend devuelve la mesa completa (con su id) tanto en
+      // crear como en actualizar — igual que con productos, así que
+      // recién aquí, con el id confirmado, subimos la foto.
+      if (archivoImagen && mesa?.id) {
+        try {
+          await subirImagenMesa(mesa.id, archivoImagen);
+        } catch (errImagen) {
+          toast.error(errImagen.message || "La mesa se guardó, pero la imagen no se pudo subir.");
+        }
       }
+
+      toast.success(mesaEditar ? "Mesa actualizada correctamente." : "Mesa creada correctamente.");
       cerrarModal();
       cargarMesas();
     } catch (err) {
@@ -134,161 +150,189 @@ function Mesas() {
 
   const totalMesas = mesas.length;
   const disponibles = mesas.filter((m) => m.disponible).length;
+  const qrActivos = mesas.filter((m) => m.qr_codigo).length;
+  const capacidadTotal = mesas.reduce((suma, m) => suma + (Number(m.capacidad) || 0), 0);
 
   return (
-    <section className="modulo-admin">
-      <div className="recepcion-header fila-header">
+    <section className="ms-modulo">
+      <div className="ms-header">
         <div>
-          <h1>Gestión de Mesas</h1>
-          <p>Administra mesas, códigos QR, capacidad y disponibilidad del local.</p>
+          <h1 className="ms-titulo">Gestión de Mesas</h1>
+          <p className="ms-subtitulo">
+            Administra mesas, códigos QR, capacidad y disponibilidad del local.
+          </p>
         </div>
 
-        <button className="btn-accion-principal btn-header" onClick={abrirModalNueva}>
+        <button className="ms-btn-nueva" onClick={abrirModalNueva}>
           <Plus size={18} />
           Agregar mesa
         </button>
       </div>
 
-      {cargando && <p>Cargando mesas...</p>}
+      {cargando && <p className="ms-cargando">Cargando mesas...</p>}
 
       {!cargando && mesas.length === 0 && (
-        <div style={{ textAlign: "center", padding: "3rem", color: "#9ca3af" }}>
-          <Table2 size={48} style={{ marginBottom: "1rem", opacity: 0.4 }} />
-          <p style={{ fontSize: "1.1rem", fontWeight: "600" }}>No tienes mesas registradas</p>
-          <p style={{ fontSize: "0.9rem" }}>Haz clic en "Agregar mesa" para comenzar</p>
+        <div className="ms-vacio">
+          <Table2 size={44} />
+          <p className="ms-vacio-titulo">No tienes mesas registradas</p>
+          <p className="ms-vacio-texto">Haz clic en "Agregar mesa" para comenzar</p>
         </div>
       )}
 
       {!cargando && mesas.length > 0 && (
         <>
-          <section className="metricas-grid tres-columnas">
-            <article className="metrica-card">
-              <div className="metrica-icon azul">
-                <Table2 size={28} />
+          <div className="ms-stats">
+            <div className="ms-stat-card">
+              <div className="ms-stat-icono ms-stat-icono--azul">
+                <Table2 size={22} />
               </div>
               <div>
-                <p>Total de mesas</p>
-                <h2>{totalMesas}</h2>
-                <span>Registradas en el local</span>
+                <p className="ms-stat-label">Total de mesas</p>
+                <p className="ms-stat-valor">{totalMesas}</p>
+                <p className="ms-stat-nota">Registradas en el local</p>
               </div>
-            </article>
+            </div>
 
-            <article className="metrica-card">
-              <div className="metrica-icon verde">
-                <Users size={28} />
+            <div className="ms-stat-card">
+              <div className="ms-stat-icono ms-stat-icono--verde">
+                <Users size={22} />
               </div>
               <div>
-                <p>Disponibles</p>
-                <h2>{disponibles}</h2>
-                <span>Listas para uso</span>
+                <p className="ms-stat-label">Disponibles</p>
+                <p className="ms-stat-valor">{disponibles}</p>
+                <p className="ms-stat-nota">Listas para uso</p>
               </div>
-            </article>
+            </div>
 
-            <article className="metrica-card">
-              <div className="metrica-icon naranja">
-                <QrCode size={28} />
+            <div className="ms-stat-card">
+              <div className="ms-stat-icono ms-stat-icono--naranja">
+                <QrCode size={22} />
               </div>
               <div>
-                <p>QR activos</p>
-                <h2>{mesas.filter((m) => m.qr_codigo).length}</h2>
-                <span>Códigos generados</span>
+                <p className="ms-stat-label">QR activos</p>
+                <p className="ms-stat-valor">{qrActivos}</p>
+                <p className="ms-stat-nota">Códigos generados</p>
               </div>
-            </article>
-          </section>
+            </div>
 
-          <section className="grid-mesas">
+            <div className="ms-stat-card">
+              <div className="ms-stat-icono ms-stat-icono--morado">
+                <Calendar size={22} />
+              </div>
+              <div>
+                <p className="ms-stat-label">Capacidad total</p>
+                <p className="ms-stat-valor">{capacidadTotal}</p>
+                <p className="ms-stat-nota">Personas</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="ms-grid">
             {mesas.map((mesa) => {
-              const color = mesa.disponible ? "disponible" : "ocupada";
-              const estado = mesa.disponible ? "Disponible" : "Ocupada";
+              const disponible = mesa.disponible;
 
               return (
-                <article className="mesa-card" key={mesa.id}>
-                  <div className="mesa-card-header">
-                    <div className={`mesa-card-icon ${color}`}>
-                      <Table2 size={24} />
+                <article className="ms-card" key={mesa.id}>
+                  <div
+                    className="ms-card-foto"
+                    style={
+                      mesa.imagen
+                        ? { backgroundImage: `url(${urlImagen(mesa.imagen)})` }
+                        : undefined
+                    }
+                  >
+                    {!mesa.imagen && (
+                      <div className="ms-card-foto-vacia">
+                        <ImageOff size={26} />
+                      </div>
+                    )}
+
+                    <span
+                      className={`ms-badge-estado ${
+                        disponible ? "ms-badge-estado--disponible" : "ms-badge-estado--ocupada"
+                      }`}
+                    >
+                      {disponible ? "Disponible" : "Ocupada"}
+                    </span>
+                  </div>
+
+                  <div className="ms-card-body">
+                    <div className="ms-card-header">
+                      <div
+                        className={`ms-icon ${
+                          disponible ? "ms-icon--disponible" : "ms-icon--ocupada"
+                        }`}
+                      >
+                        <Table2 size={20} />
+                      </div>
+                      <div className="ms-card-titulo">
+                        <h3>Mesa {mesa.numero}</h3>
+                        <p className="ms-qr-texto">Código QR: {mesa.qr_codigo || "Sin QR"}</p>
+                      </div>
                     </div>
-                    <span className={`badge ${color}`}>{estado}</span>
-                  </div>
 
-                  <h3>Mesa {mesa.numero}</h3>
-                  <p>Código QR: {mesa.qr_codigo || "Sin QR"}</p>
+                    <div className="ms-detalles">
+                      <span>
+                        <Users size={15} />
+                        Capacidad: {mesa.capacidad} personas
+                      </span>
+                      <span>
+                        <MapPin size={15} />
+                        {/* MG-66: zona_nombre viene del JOIN con la tabla
+                            zonas (vía zona_id) en el backend. Si la mesa
+                            no tiene zona asignada, se muestra un texto
+                            neutro en vez de asumir "Salón principal". */}
+                        {mesa.zona_nombre || "Sin zona asignada"}
+                      </span>
+                    </div>
 
-                  <div className="mesa-detalles">
-                    <span>
-                      <Users size={16} />
-                      Capacidad: {mesa.capacidad}
-                    </span>
-                    <span>
-                      <MapPin size={16} />
-                      {/* MG-66: zona_nombre viene del JOIN con la tabla
-                          zonas (vía zona_id) en el backend. Si la mesa
-                          no tiene zona asignada, se muestra un texto
-                          neutro en vez de asumir "Salón principal". */}
-                      {mesa.zona_nombre || "Sin zona asignada"}
-                    </span>
-                  </div>
+                    <div className="ms-acciones">
+                      <button
+                        className="ms-accion ms-accion--qr"
+                        onClick={() => (mesa.qr_codigo ? manejarVerQr(mesa) : manejarGenerarQr(mesa))}
+                        title={mesa.qr_codigo ? "Ver QR actual" : "Generar QR"}
+                      >
+                        <QrCode size={14} />
+                        {mesa.qr_codigo ? "Ver QR" : "Generar QR"}
+                      </button>
 
-                  <div className="acciones-mesa">
-                    <button
-                      className="btn-ver"
-                      onClick={() => mesa.qr_codigo ? manejarVerQr(mesa) : manejarGenerarQr(mesa)}
-                      title={mesa.qr_codigo ? "Ver QR actual" : "Generar QR"}
-                    >
-                      <QrCode size={15} />
-                      {mesa.qr_codigo ? "Ver QR" : "Generar QR"}
-                    </button>
+                      <button className="ms-accion ms-accion--editar" onClick={() => abrirModalEditar(mesa)}>
+                        <Edit size={14} />
+                        Editar
+                      </button>
 
-                    <button
-                      className="btn-ok"
-                      onClick={() => abrirModalEditar(mesa)}
-                    >
-                      <Edit size={15} />
-                      Editar
-                    </button>
-
-                    <button
-                      className="btn-eliminar"
-                      onClick={() => manejarEliminar(mesa.id)}
-                    >
-                      <Trash2 size={15} />
-                      Eliminar
-                    </button>
+                      <button
+                        className="ms-accion ms-accion--eliminar"
+                        onClick={() => manejarEliminar(mesa.id)}
+                      >
+                        <Trash2 size={14} />
+                        Eliminar
+                      </button>
+                    </div>
                   </div>
                 </article>
               );
             })}
-          </section>
+          </div>
         </>
       )}
 
       {qrModalAbierto && qrData && (
-        <Modal
-          titulo={`QR — Mesa ${qrData.mesa.numero}`}
-          onClose={cerrarModalQr}
-        >
-          <div style={{ textAlign: "center", padding: "1rem" }}>
-            <img src={qrData.qr} alt="Código QR" style={{ width: 220, height: 220 }} />
-            <p style={{ marginTop: "1rem", fontSize: "0.85rem", color: "#666" }}>
+        <Modal titulo={`QR — Mesa ${qrData.mesa.numero}`} onClose={cerrarModalQr}>
+          <div className="ms-qr-modal">
+            <img src={qrData.qr} alt="Código QR" className="ms-qr-imagen" />
+            <p className="ms-qr-instruccion">
               Escanea este QR desde tu celular para acceder al menú de la mesa {qrData.mesa.numero}
             </p>
-            <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginTop: "1rem" }}>
+            <div className="ms-qr-acciones">
               <a
                 href={qrData.qr}
                 download={`QR-Mesa-${qrData.mesa.numero}.png`}
-                className="btn-accion-principal"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                }}
+                className="ms-qr-btn-descargar"
               >
                 Descargar QR
               </a>
-              <button
-                className="btn-ver"
-                onClick={() => manejarGenerarQr(qrData.mesa)}
-              >
+              <button className="ms-qr-btn-regenerar" onClick={() => manejarGenerarQr(qrData.mesa)}>
                 Regenerar QR
               </button>
             </div>
@@ -297,10 +341,7 @@ function Mesas() {
       )}
 
       {modalAbierto && (
-        <Modal
-          titulo={mesaEditar ? "Editar mesa" : "Nueva mesa"}
-          onClose={cerrarModal}
-        >
+        <Modal titulo={mesaEditar ? "Editar mesa" : "Nueva mesa"} onClose={cerrarModal}>
           <MesaForm
             mesaEditar={mesaEditar}
             zonas={zonas}

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { urlImagen } from "../api";
 import {
   obtenerMenuPorCodigoQr,
   crearORecuperarSesionCliente,
@@ -55,6 +56,9 @@ function MenuDigital() {
   const sesionProcesadaRef = useRef(null);
 
   const [mesa, setMesa] = useState(null);
+  // Identidad visual del restaurante (logo, banner, color) — llega
+  // en la misma respuesta del menú, no hace falta pedirla aparte.
+  const [restaurante, setRestaurante] = useState(null);
   const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [categoria, setCategoria] = useState("Todas");
@@ -163,6 +167,7 @@ function MenuDigital() {
           }
 
           setMesa(datos.mesa);
+          setRestaurante(datos.restaurante || null);
           setProductos(datos.productos);
       } catch (err) {
         // Permite volver a intentar si ocurrió un error.
@@ -411,11 +416,30 @@ const disminuirCantidad = (productoId) => {
 
   return (
     <main className="menu-digital-pagina">
+      {/* Banner de portada del restaurante — solo se muestra si el
+          ADMIN subió uno en Configuración (identidad visual). */}
+      {restaurante?.banner && (
+        <div className="menu-digital-banner">
+          <img
+            src={urlImagen(restaurante.banner)}
+            alt={`Banner de ${restaurante?.nombre || "MesaGo"}`}
+          />
+        </div>
+      )}
+
       <header className="menu-digital-header">
         <div className="menu-logo">
-          <strong>
-            Mesa<span>Go</span>
-          </strong>
+          {restaurante?.logo ? (
+            <img
+              className="menu-logo-imagen"
+              src={urlImagen(restaurante.logo)}
+              alt={`Logo de ${restaurante?.nombre || "MesaGo"}`}
+            />
+          ) : (
+            <strong>
+              Mesa<span>Go</span>
+            </strong>
+          )}
         </div>
 
         <div>
@@ -498,9 +522,25 @@ const disminuirCantidad = (productoId) => {
                   className="carrito-producto"
                   key={producto.id}
                 >
-                  <div className="carrito-producto-icono">
-                    {obtenerIconoCategoria(
-                      producto.categoria
+                  <div
+                    className="carrito-producto-icono"
+                    style={{ overflow: "hidden", width: 58, height: 58, flexShrink: 0 }}
+                  >
+                    {producto.foto ? (
+                      <img
+                        src={urlImagen(producto.foto)}
+                        alt={producto.nombre}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          display: "block",
+                        }}
+                      />
+                    ) : (
+                      obtenerIconoCategoria(
+                        producto.categoria
+                      )
                     )}
                   </div>
 
@@ -690,8 +730,15 @@ const disminuirCantidad = (productoId) => {
                 key={producto.id}
               >
                 <div className="producto-menu-imagen">
-                  {obtenerIconoCategoria(
-                    producto.categoria
+                  {producto.foto ? (
+                    <img
+                      src={urlImagen(producto.foto)}
+                      alt={producto.nombre}
+                    />
+                  ) : (
+                    obtenerIconoCategoria(
+                      producto.categoria
+                    )
                   )}
                 </div>
 

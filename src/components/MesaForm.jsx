@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { CircleCheck, CircleX } from "lucide-react";
+import { CircleCheck, CircleX, ImagePlus } from "lucide-react";
+import { urlImagen } from "../api";
 
 const valoresIniciales = {
   numero: "",
@@ -10,12 +11,19 @@ const valoresIniciales = {
   qr_codigo: "",
 };
 
+const TIPOS_IMAGEN_PERMITIDOS = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
+
 // MG-66: "zonas" es la lista de zonas activas del restaurante,
 // obtenida desde la BD (ya no es texto libre). Viene como prop desde
 // Mesas.jsx, que la carga con zonasService.obtenerZonas().
 function MesaForm({ mesaEditar, zonas = [], onGuardar, onCancelar }) {
   const [formulario, setFormulario] = useState(valoresIniciales);
   const [guardando, setGuardando] = useState(false);
+
+  // Igual que en ProductoForm: archivoImagen es lo que se sube al
+  // backend (null si no se tocó la foto). previewUrl es solo visual.
+  const [archivoImagen, setArchivoImagen] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
     if (mesaEditar) {
@@ -26,10 +34,21 @@ function MesaForm({ mesaEditar, zonas = [], onGuardar, onCancelar }) {
         estado: mesaEditar.estado ?? "DISPONIBLE",
         qr_codigo: mesaEditar.qr_codigo ?? "",
       });
+      setPreviewUrl(mesaEditar.imagen ? urlImagen(mesaEditar.imagen) : null);
     } else {
       setFormulario(valoresIniciales);
+      setPreviewUrl(null);
     }
+    setArchivoImagen(null);
   }, [mesaEditar]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const manejarCambio = (event) => {
     const { name, value } = event.target;
@@ -41,6 +60,25 @@ function MesaForm({ mesaEditar, zonas = [], onGuardar, onCancelar }) {
 
   const seleccionarEstado = (valor) => {
     setFormulario((anterior) => ({ ...anterior, estado: valor }));
+  };
+
+  const manejarSeleccionImagen = (event) => {
+    const archivo = event.target.files?.[0];
+    event.target.value = "";
+    if (!archivo) return;
+
+    if (!TIPOS_IMAGEN_PERMITIDOS.includes(archivo.type)) {
+      toast.error("Formato no permitido. Usa JPG, PNG, WEBP o SVG.");
+      return;
+    }
+
+    if (archivo.size > 3 * 1024 * 1024) {
+      toast.error("La imagen no puede pesar más de 3 MB.");
+      return;
+    }
+
+    setArchivoImagen(archivo);
+    setPreviewUrl(URL.createObjectURL(archivo));
   };
 
   const manejarEnvio = async (event) => {
@@ -63,13 +101,20 @@ function MesaForm({ mesaEditar, zonas = [], onGuardar, onCancelar }) {
 
     try {
       setGuardando(true);
-      await onGuardar({
-        numero: Number(formulario.numero),
-        zona_id: Number(formulario.zona_id),
-        capacidad: Number(formulario.capacidad),
-        estado: formulario.estado,
-        qr_codigo: formulario.qr_codigo || null,
-      });
+      // Segundo argumento nuevo (archivoImagen) — igual que en
+      // ProductoForm, Mesas.jsx lo usa para subir la foto DESPUÉS de
+      // crear/actualizar la mesa (necesita el id que devuelve el
+      // backend). Viaja como null si no se tocó la foto.
+      await onGuardar(
+        {
+          numero: Number(formulario.numero),
+          zona_id: Number(formulario.zona_id),
+          capacidad: Number(formulario.capacidad),
+          estado: formulario.estado,
+          qr_codigo: formulario.qr_codigo || null,
+        },
+        archivoImagen
+      );
     } finally {
       setGuardando(false);
     }
@@ -77,6 +122,30 @@ function MesaForm({ mesaEditar, zonas = [], onGuardar, onCancelar }) {
 
   return (
     <form className="formulario-modal" onSubmit={manejarEnvio}>
+      <label className="pf-imagen-campo">
+        Foto de la mesa
+        <label className="pf-imagen-preview" htmlFor="pf-imagen-input-mesa">
+          {previewUrl ? (
+            <img src={previewUrl} alt="Vista previa de la mesa" />
+          ) : (
+            <span className="pf-imagen-placeholder">
+              <ImagePlus size={26} />
+              Subir foto
+            </span>
+          )}
+        </label>
+        <input
+          id="pf-imagen-input-mesa"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/svg+xml"
+          className="pf-imagen-input-oculto"
+          onChange={manejarSeleccionImagen}
+        />
+        <span className="campo-ayuda">
+          {previewUrl ? "Haz clic en la foto para cambiarla." : "JPG, PNG, WEBP o SVG — máx. 3 MB."}
+        </span>
+      </label>
+
       <label>
         Número de mesa
         <input
