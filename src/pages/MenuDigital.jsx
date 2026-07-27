@@ -261,6 +261,7 @@ function MenuDigital() {
 
 // MG-53: agregar un producto o aumentar su cantidad.
 const agregarProducto = (producto) => {
+    setPagoConfirmado(null);
   setCarrito((anterior) => {
     const productoExistente = anterior.find(
       (item) => item.id === producto.id
@@ -334,7 +335,15 @@ const disminuirCantidad = (productoId) => {
             setCarrito([]);
             toast.success("Carrito vaciado");
           };
-          // MG-62: confirmar gráficamente el pago del pedido temporal.
+          const prepararNuevoPedido = () => {
+          setPagoConfirmado(null);
+          setPedidoTemporal(null);
+          setCarrito([]);
+          setObservaciones("");
+          setMetodoPago("Efectivo");
+          setCarritoAbierto(false);
+        };
+                  // MG-62: confirmar gráficamente el pago del pedido temporal.
     const manejarConfirmarPago = async () => {
       if (!pedidoTemporal?.id) {
         toast.error("Primero debes guardar el pedido temporal.");
@@ -592,9 +601,10 @@ const disminuirCantidad = (productoId) => {
             <button
               type="button"
               className="carrito-guardar-pedido"
-              onClick={() => setCarritoAbierto(false)}
+              onClick={prepararNuevoPedido}
             >
-              Cerrar
+              <Plus size={17} />
+              Realizar otro pedido
             </button>
           </div>
         ) : carrito.length === 0 ? (
