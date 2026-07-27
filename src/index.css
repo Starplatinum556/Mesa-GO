@@ -8631,3 +8631,123 @@ a {
     align-items: flex-start;
   }
 }
+/* MG-62: flujo gráfico de pago del cliente */
+.pago-cliente-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  margin-top: 14px;
+  border: 1px solid #fed7aa;
+  border-radius: 16px;
+  background: #fff7ed;
+}
+
+.pago-cliente-titulo h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.pago-cliente-titulo p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.86rem;
+}
+
+.pago-metodos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pago-metodo-opcion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.pago-metodo-opcion.activo {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+}
+
+.pago-metodo-opcion input {
+  accent-color: #f97316;
+}
+
+.pago-metodo-opcion span {
+  display: grid;
+  gap: 2px;
+}
+
+.pago-metodo-opcion small {
+  color: #6b7280;
+  font-size: 0.74rem;
+}
+
+.carrito-confirmar-pago {
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  padding: 13px 16px;
+  background: #ea580c;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.carrito-confirmar-pago:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.pago-confirmado-panel {
+  display: grid;
+  justify-items: center;
+  gap: 15px;
+  padding: 32px 22px;
+  text-align: center;
+}
+
+.pago-confirmado-panel > svg {
+  color: #16a34a;
+}
+
+.pago-confirmado-panel h3,
+.pago-confirmado-panel p {
+  margin: 0;
+}
+
+.pago-confirmado-panel p {
+  color: #6b7280;
+}
+
+.pago-confirmado-resumen {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.pago-confirmado-resumen div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pago-confirmado-resumen span {
+  color: #6b7280;
+}
+
+@media (max-width: 520px) {
+  .pago-metodos {
+    grid-template-columns: 1fr;
+  }
+}

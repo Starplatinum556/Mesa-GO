@@ -11,6 +11,9 @@ import {
   Minus,
   Trash2,
   X,
+  CreditCard,
+  Wallet,
+  CheckCircle2,
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -19,6 +22,7 @@ import {
   obtenerMenuPorCodigoQr,
   crearORecuperarSesionCliente,
   guardarPedidoTemporal,
+  confirmarPagoPedido,
 } from "../services/menuService";
 
 // MG-34: permite reconocer visualmente cada categoría.
@@ -68,6 +72,9 @@ function MenuDigital() {
   const [observaciones, setObservaciones] = useState("");
   const [guardandoPedido, setGuardandoPedido] = useState(false);
   const [pedidoTemporal, setPedidoTemporal] = useState(null);
+  const [metodoPago, setMetodoPago] = useState("Efectivo");
+  const [confirmandoPago, setConfirmandoPago] = useState(false);
+  const [pagoConfirmado, setPagoConfirmado] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
@@ -313,20 +320,77 @@ const disminuirCantidad = (productoId) => {
   );
 };
 
-      // MG-53: eliminar completamente un producto.
-      const eliminarProducto = (productoId) => {
-        setCarrito((anterior) =>
-          anterior.filter((item) => item.id !== productoId)
+          // MG-53: eliminar completamente un producto.
+          const eliminarProducto = (productoId) => {
+            setCarrito((anterior) =>
+              anterior.filter((item) => item.id !== productoId)
+            );
+
+            toast.success("Producto eliminado del carrito");
+          };
+
+          // MG-53: eliminar todos los productos.
+          const vaciarCarrito = () => {
+            setCarrito([]);
+            toast.success("Carrito vaciado");
+          };
+          // MG-62: confirmar gráficamente el pago del pedido temporal.
+    const manejarConfirmarPago = async () => {
+      if (!pedidoTemporal?.id) {
+        toast.error("Primero debes guardar el pedido temporal.");
+        return;
+      }
+
+      const sesionGuardada = localStorage.getItem(
+        "mesago_sesion_cliente_actual"
+      );
+
+      if (!sesionGuardada) {
+        toast.error("No se encontró una sesión temporal activa.");
+        return;
+      }
+
+      try {
+        setConfirmandoPago(true);
+
+        const sesion = JSON.parse(sesionGuardada);
+
+        if (!sesion.token) {
+          throw new Error("La sesión temporal no contiene un token válido.");
+        }
+
+        const respuesta = await confirmarPagoPedido({
+          pedidoId: pedidoTemporal.id,
+          tokenSesion: sesion.token,
+          metodoPago,
+          comprobante:
+            metodoPago === "Tarjeta"
+              ? `SIMULADO-${pedidoTemporal.codigo}`
+              : null,
+        });
+
+        setPagoConfirmado(respuesta.pedido);
+        setPedidoTemporal(null);
+        setCarrito([]);
+        setObservaciones("");
+
+        localStorage.removeItem(
+          `mesago_pedido_temporal_${sesion.id}`
         );
 
-        toast.success("Producto eliminado del carrito");
-      };
+        if (claveCarrito) {
+          localStorage.removeItem(claveCarrito);
+        }
 
-      // MG-53: eliminar todos los productos.
-      const vaciarCarrito = () => {
-        setCarrito([]);
-        toast.success("Carrito vaciado");
-      };
+        toast.success(respuesta.mensaje);
+      } catch (error) {
+        toast.error(
+          error.message || "No se pudo confirmar el pago."
+        );
+      } finally {
+        setConfirmandoPago(false);
+      }
+    };
             // MG-57: guardar o actualizar el pedido temporal.
       const manejarPedidoTemporal = async () => {
         if (carrito.length === 0) {
@@ -397,101 +461,143 @@ const disminuirCantidad = (productoId) => {
         0
       );
 
-  if (cargando) {
-    return (
-      <p className="estado-carga">
-        Cargando menú...
-      </p>
-    );
-  }
+          if (cargando) {
+            return (
+              <p className="estado-carga">
+                Cargando menú...
+              </p>
+            );
+          }
 
-  if (error || !mesa) {
-    return (
-      <p className="estado-error">
-        {error ||
-          "No se encontró la mesa asociada al código QR."}
-      </p>
-    );
-  }
+          if (error || !mesa) {
+            return (
+              <p className="estado-error">
+                {error ||
+                  "No se encontró la mesa asociada al código QR."}
+              </p>
+            );
+          }
 
-  return (
-    <main className="menu-digital-pagina">
-      {/* Banner de portada del restaurante — solo se muestra si el
-          ADMIN subió uno en Configuración (identidad visual). */}
-      {restaurante?.banner && (
-        <div className="menu-digital-banner">
-          <img
-            src={urlImagen(restaurante.banner)}
-            alt={`Banner de ${restaurante?.nombre || "MesaGo"}`}
-          />
-        </div>
-      )}
+          return (
+            <main className="menu-digital-pagina">
+              {/* Banner de portada del restaurante — solo se muestra si el
+                  ADMIN subió uno en Configuración (identidad visual). */}
+              {restaurante?.banner && (
+                <div className="menu-digital-banner">
+                  <img
+                    src={urlImagen(restaurante.banner)}
+                    alt={`Banner de ${restaurante?.nombre || "MesaGo"}`}
+                  />
+                </div>
+              )}
 
-      <header className="menu-digital-header">
-        <div className="menu-logo">
-          {restaurante?.logo ? (
-            <img
-              className="menu-logo-imagen"
-              src={urlImagen(restaurante.logo)}
-              alt={`Logo de ${restaurante?.nombre || "MesaGo"}`}
-            />
-          ) : (
-            <strong>
-              Mesa<span>Go</span>
-            </strong>
-          )}
-        </div>
+              <header className="menu-digital-header">
+                <div className="menu-logo">
+                  {restaurante?.logo ? (
+                    <img
+                      className="menu-logo-imagen"
+                      src={urlImagen(restaurante.logo)}
+                      alt={`Logo de ${restaurante?.nombre || "MesaGo"}`}
+                    />
+                  ) : (
+                    <strong>
+                      Mesa<span>Go</span>
+                    </strong>
+                  )}
+                </div>
 
-        <div>
-          <p>{mesa.zona}</p>
-          <h1>Mesa {mesa.numero}</h1>
-        </div>
+                <div>
+                  <p>{mesa.zona}</p>
+                  <h1>Mesa {mesa.numero}</h1>
+                </div>
 
-          <button
-            type="button"
-            className="carrito-resumen"
-            onClick={() => setCarritoAbierto(true)}
-            aria-label="Abrir carrito de compras"
+                  <button
+                    type="button"
+                    className="carrito-resumen"
+                    onClick={() => setCarritoAbierto(true)}
+                    aria-label="Abrir carrito de compras"
+                  >
+                    <ShoppingCart size={20} />
+
+                    <span>
+                      {cantidadTotal}{" "}
+                      {cantidadTotal === 1
+                        ? "producto"
+                        : "productos"}
+                    </span>
+
+                    <strong>${total.toFixed(2)}</strong>
+                  </button>
+              </header>
+        {carritoAbierto && (
+          <div
+            className="carrito-overlay"
+            onClick={() => setCarritoAbierto(false)}
           >
-            <ShoppingCart size={20} />
+            <aside
+              className="carrito-panel"
+              aria-label="Carrito de compras"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="carrito-panel-header">
+                <div>
+                  <p>Tu pedido</p>
+                  <h2>Carrito de compras</h2>
+                </div>
 
-            <span>
-              {cantidadTotal}{" "}
-              {cantidadTotal === 1
-                ? "producto"
-                : "productos"}
-            </span>
+                <button
+                  type="button"
+                  className="carrito-cerrar"
+                  onClick={() => setCarritoAbierto(false)}
+                  aria-label="Cerrar carrito"
+                >
+                  <X size={22} />
+                </button>
+              </div>
 
-            <strong>${total.toFixed(2)}</strong>
-          </button>
-      </header>
-{carritoAbierto && (
-  <div
-    className="carrito-overlay"
-    onClick={() => setCarritoAbierto(false)}
-  >
-    <aside
-      className="carrito-panel"
-      aria-label="Carrito de compras"
-      onClick={(event) => event.stopPropagation()}
-    >
-      <div className="carrito-panel-header">
-        <div>
-          <p>Tu pedido</p>
-          <h2>Carrito de compras</h2>
-        </div>
+              {pagoConfirmado ? (
+          <div className="pago-confirmado-panel">
+            <CheckCircle2 size={58} />
 
-        <button
-          type="button"
-          className="carrito-cerrar"
-          onClick={() => setCarritoAbierto(false)}
-          aria-label="Cerrar carrito"
-        >
-          <X size={22} />
-        </button>
-      </div>
+            <h3>¡Pedido enviado a cocina!</h3>
 
-      {carrito.length === 0 ? (
+            <p>
+              El pago fue confirmado y tu pedido ya está siendo recibido.
+            </p>
+
+            <div className="pago-confirmado-resumen">
+              <div>
+                <span>Código del pedido</span>
+                <strong>{pagoConfirmado.codigo}</strong>
+              </div>
+
+              <div>
+                <span>Método de pago</span>
+                <strong>{pagoConfirmado.metodo_pago}</strong>
+              </div>
+
+              <div>
+                <span>Total</span>
+                <strong>
+                  ${Number(pagoConfirmado.total).toFixed(2)}
+                </strong>
+              </div>
+
+              <div>
+                <span>Estado</span>
+                <strong>{pagoConfirmado.estado}</strong>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="carrito-guardar-pedido"
+              onClick={() => setCarritoAbierto(false)}
+            >
+              Cerrar
+            </button>
+          </div>
+        ) : carrito.length === 0 ? (
         <div className="carrito-vacio">
           <ShoppingCart size={42} />
 
@@ -626,6 +732,75 @@ const disminuirCantidad = (productoId) => {
                   <strong>{pedidoTemporal.codigo}</strong>
                 </div>
               )}
+              {pedidoTemporal && (
+              <div className="pago-cliente-panel">
+                <div className="pago-cliente-titulo">
+                  <h3>Selecciona el método de pago</h3>
+                  <p>
+                    El pedido se enviará a cocina después de confirmar.
+                  </p>
+                </div>
+
+                <div className="pago-metodos">
+                  <label
+                    className={`pago-metodo-opcion ${
+                      metodoPago === "Efectivo" ? "activo" : ""
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="metodoPago"
+                      value="Efectivo"
+                      checked={metodoPago === "Efectivo"}
+                      onChange={(event) =>
+                        setMetodoPago(event.target.value)
+                      }
+                    />
+
+                    <Wallet size={22} />
+
+                    <span>
+                      <strong>Efectivo</strong>
+                      <small>Pago al recibir el pedido</small>
+                    </span>
+                  </label>
+
+                  <label
+                    className={`pago-metodo-opcion ${
+                      metodoPago === "Tarjeta" ? "activo" : ""
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="metodoPago"
+                      value="Tarjeta"
+                      checked={metodoPago === "Tarjeta"}
+                      onChange={(event) =>
+                        setMetodoPago(event.target.value)
+                      }
+                    />
+
+                    <CreditCard size={22} />
+
+                    <span>
+                      <strong>Tarjeta</strong>
+                      <small>Validación simulada para esta versión</small>
+                    </span>
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  className="carrito-confirmar-pago"
+                  onClick={manejarConfirmarPago}
+                  disabled={confirmandoPago}
+                >
+                  {confirmandoPago
+                    ? "Confirmando pago..."
+                    : `Confirmar pago de $${total.toFixed(2)}`}
+                </button>
+              </div>
+            )}
 
               <div className="carrito-total">
                 <span>
