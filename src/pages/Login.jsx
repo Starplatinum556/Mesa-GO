@@ -110,7 +110,7 @@ function Login() {
                 Recordarme
               </label>
 
-              <a href="#">¿Olvidaste tu contraseña?</a>
+              <Link to="/olvide-password">¿Olvidaste tu contraseña?</Link>
             </div>
 
             <button type="submit" className="btn-auth" disabled={cargando}>
