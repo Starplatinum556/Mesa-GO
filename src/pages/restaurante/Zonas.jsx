@@ -22,6 +22,7 @@ import {
 } from "../../services/zonasService";
 import Modal from "../../components/Modal";
 import ZonaForm from "../../components/ZonaForm";
+import "../../styles/administrador/zonas.css";
 
 // MG-66: igual que en categorías, cada zona se pinta con un ícono y
 // color propios según palabras clave en el nombre. Si el nombre no

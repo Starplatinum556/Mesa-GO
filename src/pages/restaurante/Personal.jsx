@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import { apiFetch, urlImagen } from "../../api";
 import Modal from "../../components/Modal";
 import PersonalForm from "../../components/PersonalForm";
+import "../../styles/administrador/personal.css";
 
 const ITEMS_POR_PAGINA_DEFAULT = 8;
 

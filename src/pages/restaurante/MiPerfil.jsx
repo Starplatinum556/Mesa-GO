@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Calendar,
   Camera,
@@ -18,7 +19,13 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { urlImagen } from "../../api";
-import { actualizarMiPerfil, obtenerMiPerfil, subirFotoPerfil } from "../../services/perfilService";
+import {
+  actualizarMiPerfil,
+  cambiarPassword,
+  obtenerMiPerfil,
+  subirFotoPerfil,
+} from "../../services/perfilService";
+import "../../styles/perfil.css";
 
 const NOMBRE_ROL = {
   ADMIN: "Administrador",
@@ -41,6 +48,12 @@ function archivoValido(archivo) {
   }
   return true;
 }
+
+const FORM_PASSWORD_VACIO = {
+  passwordActual: "",
+  passwordNueva: "",
+  confirmarPassword: "",
+};
 
 /* ──────────────────────────────
    Helpers
@@ -126,7 +139,7 @@ function FilaEditable({ label, Icon, children }) {
 /* ──────────────────────────────
    Fila de seguridad (con acción opcional)
 ────────────────────────────── */
-function FilaSeguridad({ label, value, Icon, accion }) {
+function FilaSeguridad({ label, value, Icon, accion, onAccion }) {
   return (
     <div className="mp-seguridad-fila">
       <span className="mp-seguridad-icono">
@@ -137,7 +150,7 @@ function FilaSeguridad({ label, value, Icon, accion }) {
         <span className="mp-seguridad-valor">{value}</span>
       </div>
       {accion && (
-        <button type="button" className="mp-seguridad-accion" disabled>
+        <button type="button" className="mp-seguridad-accion" onClick={onAccion}>
           {accion}
         </button>
       )}
@@ -149,6 +162,8 @@ function FilaSeguridad({ label, value, Icon, accion }) {
    Componente principal
 ────────────────────────────── */
 function MiPerfil() {
+  const navigate = useNavigate();
+
   const [perfil, setPerfil] = useState(null);
   const [cargando, setCargando] = useState(true);
 
@@ -158,6 +173,10 @@ function MiPerfil() {
 
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const inputFotoRef = useRef(null);
+
+  const [cambiandoPassword, setCambiandoPassword] = useState(false);
+  const [guardandoPassword, setGuardandoPassword] = useState(false);
+  const [formPassword, setFormPassword] = useState(FORM_PASSWORD_VACIO);
 
   useEffect(() => {
     let activo = true;
@@ -239,6 +258,61 @@ function MiPerfil() {
       toast.error(err.message || "No se pudo subir la foto.");
     } finally {
       setSubiendoFoto(false);
+    }
+  };
+
+  // MP-58: cambio de contraseña — toggle inline en la tarjeta de
+  // Seguridad, mismo criterio que iniciarEdicion/cancelarEdicion.
+  const iniciarCambioPassword = () => {
+    setFormPassword(FORM_PASSWORD_VACIO);
+    setCambiandoPassword(true);
+  };
+
+  const cancelarCambioPassword = () => {
+    setCambiandoPassword(false);
+    setFormPassword(FORM_PASSWORD_VACIO);
+  };
+
+  const actualizarCampoPassword = (campo, valor) => {
+    setFormPassword((prev) => ({ ...prev, [campo]: valor }));
+  };
+
+  // El JWT actual sigue siendo válido hasta que expire (no hay
+  // revocación de tokens), así que después de un cambio exitoso
+  // cerramos la sesión manualmente y mandamos a /login — es lo que
+  // realmente "cierra el círculo" de seguridad acá.
+  const enviarCambioPassword = async (e) => {
+    e.preventDefault();
+    const { passwordActual, passwordNueva, confirmarPassword } = formPassword;
+
+    if (!passwordActual || !passwordNueva || !confirmarPassword) {
+      toast.error("Completa los 3 campos.");
+      return;
+    }
+    if (passwordNueva.length < 6) {
+      toast.error("La nueva contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+    if (passwordNueva !== confirmarPassword) {
+      toast.error("La confirmación no coincide con la nueva contraseña.");
+      return;
+    }
+    if (passwordNueva === passwordActual) {
+      toast.error("La nueva contraseña debe ser distinta a la actual.");
+      return;
+    }
+
+    setGuardandoPassword(true);
+    try {
+      await cambiarPassword({ passwordActual, passwordNueva });
+      toast.success("Contraseña actualizada. Vuelve a iniciar sesión.");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("usuarioMesaGo");
+      navigate("/login");
+    } catch (err) {
+      toast.error(err.message || "No se pudo cambiar la contraseña.");
+    } finally {
+      setGuardandoPassword(false);
     }
   };
 
@@ -458,14 +532,71 @@ function MiPerfil() {
               </div>
             </div>
 
-            {/* MP: "Cambiar contraseña" todavía no está conectado —
-                queda para más adelante (MG-58). */}
-            <FilaSeguridad
-              label="Contraseña"
-              value="**********"
-              Icon={Lock}
-              accion="Cambiar contraseña"
-            />
+            {!cambiandoPassword ? (
+              <FilaSeguridad
+                key="fila-password"
+                label="Contraseña"
+                value="**********"
+                Icon={Lock}
+                accion="Cambiar contraseña"
+                onAccion={iniciarCambioPassword}
+              />
+            ) : (
+              <form key="form-password" className="mp-password-form" onSubmit={enviarCambioPassword}>
+                <div className="mp-password-campos">
+                  <div className="mp-campo-password">
+                    <label>Contraseña actual</label>
+                    <input
+                      type="password"
+                      className="mp-input"
+                      value={formPassword.passwordActual}
+                      onChange={(e) => actualizarCampoPassword("passwordActual", e.target.value)}
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+
+                  <div className="mp-campo-password">
+                    <label>Nueva contraseña</label>
+                    <input
+                      type="password"
+                      className="mp-input"
+                      placeholder="Mínimo 6 caracteres"
+                      value={formPassword.passwordNueva}
+                      onChange={(e) => actualizarCampoPassword("passwordNueva", e.target.value)}
+                      autoComplete="new-password"
+                      required
+                    />
+                  </div>
+
+                  <div className="mp-campo-password">
+                    <label>Confirmar nueva contraseña</label>
+                    <input
+                      type="password"
+                      className="mp-input"
+                      value={formPassword.confirmarPassword}
+                      onChange={(e) => actualizarCampoPassword("confirmarPassword", e.target.value)}
+                      autoComplete="new-password"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="mp-form-acciones">
+                  <button
+                    type="button"
+                    className="mp-btn-cancelar"
+                    onClick={cancelarCambioPassword}
+                    disabled={guardandoPassword}
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" className="mp-btn-guardar" disabled={guardandoPassword}>
+                    {guardandoPassword ? "Guardando..." : "Actualizar contraseña"}
+                  </button>
+                </div>
+              </form>
+            )}
 
             <div key={cuentaActiva ? "cuenta-activa" : "cuenta-inactiva"} className={`mp-banner ${cuentaActiva ? "mp-banner-verde" : "mp-banner-rojo"}`}>
               <span className="mp-banner-icono">

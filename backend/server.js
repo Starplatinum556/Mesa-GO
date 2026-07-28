@@ -454,6 +454,47 @@ app.patch("/api/mi-perfil", verificarToken, async (req, res) => {
   }
 });
 
+// MP-58: cambio de contraseña — pide la contraseña actual para
+// confirmar identidad (aunque ya haya JWT válido) antes de dejar
+// setear una nueva. No invalida el token actual (sigue vivo hasta
+// que expire, no hay revocación), por eso el frontend cierra la
+// sesión manualmente después de un cambio exitoso.
+app.patch("/api/mi-perfil/password", verificarToken, async (req, res) => {
+  const { passwordActual, passwordNueva } = req.body;
+
+  if (!passwordActual || !passwordNueva) {
+    return res.status(400).json({ error: "Debes ingresar tu contraseña actual y la nueva." });
+  }
+  if (passwordNueva.length < 6) {
+    return res.status(400).json({ error: "La nueva contraseña debe tener al menos 6 caracteres." });
+  }
+  if (passwordActual === passwordNueva) {
+    return res.status(400).json({ error: "La nueva contraseña debe ser distinta a la actual." });
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT password FROM usuarios WHERE id = $1",
+      [req.usuario.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado." });
+    }
+
+    const passwordValida = await bcrypt.compare(passwordActual, result.rows[0].password);
+    if (!passwordValida) {
+      return res.status(401).json({ error: "La contraseña actual es incorrecta." });
+    }
+
+    const hash = await bcrypt.hash(passwordNueva, 10);
+    await pool.query("UPDATE usuarios SET password = $1 WHERE id = $2", [hash, req.usuario.id]);
+
+    res.json({ mensaje: "Contraseña actualizada correctamente." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al cambiar la contraseña." });
+  }
+});
 
 // MP: subir/reemplazar la foto de perfil del usuario en sesión.
 // Reutiliza el mismo patrón (multer + carpeta propia + borrar la
@@ -1696,16 +1737,19 @@ app.get("/api/pedidos/:id", verificarToken, verificarRol("ADMIN", "COCINERO", "D
           dp.id,
           pr.id AS producto_id,
           pr.nombre,
-          pr.categoria,
+          c.nombre AS categoria,
           dp.cantidad,
           dp.precio_unitario,
           (dp.cantidad * dp.precio_unitario) AS subtotal
       FROM detalle_pedido dp
       JOIN productos pr
         ON pr.id = dp.producto_id
+      LEFT JOIN categorias c
+        ON c.id = pr.categoria_id
+        AND c.restaurante_id = pr.restaurante_id
       WHERE dp.pedido_id = $1
       ORDER BY
-        COALESCE(pr.categoria, ''),
+        COALESCE(c.nombre, ''),
         pr.nombre`,
       [id]
     );

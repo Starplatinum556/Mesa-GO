@@ -15,8 +15,10 @@ import {
   obtenerEntregas,
   obtenerHistorialEntregas,
 } from "../../services/entregasService";
+import "../../styles/despachador/entregas.css";
 
 const POR_PAGINA = 4;
+const INTERVALO_POLLING_MS = 15000; // recarga automática del panel
 
 /* ──────────────────────────────
    Icono de mesa (SVG inline)
@@ -202,7 +204,8 @@ function Entregas() {
   const [paginaEntregados, setPaginaEntregados] = useState(1);
 
   /* ── Carga inicial ── */
-  const cargar = useCallback(async () => {
+  const cargar = useCallback(async ({ mostrarCargando = false } = {}) => {
+    if (mostrarCargando) setCargando(true);
     try {
       const [p, h] = await Promise.all([
         obtenerEntregas(),
@@ -216,11 +219,15 @@ function Entregas() {
     } catch (err) {
       toast.error(err.message || "No se pudo cargar el panel.");
     } finally {
-      setCargando(false);
+      if (mostrarCargando) setCargando(false);
     }
   }, []);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    cargar({ mostrarCargando: true });
+    const idPolling = setInterval(() => cargar(), INTERVALO_POLLING_MS);
+    return () => clearInterval(idPolling);
+  }, [cargar]);
 
   /* ── Derivados ── */
   const listos = useMemo(

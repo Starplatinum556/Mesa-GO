@@ -24,6 +24,7 @@ import {
   guardarPedidoTemporal,
   confirmarPagoPedido,
 } from "../services/menuService";
+import "../styles/menu.css";
 
 // MG-34: permite reconocer visualmente cada categoría.
 const ICONOS_CATEGORIA = {

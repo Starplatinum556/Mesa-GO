@@ -1,0 +1,452 @@
+/* ==========================================================================
+   VISTA: Mesas (Gestión de Mesas) — clases ms-*
+   Pegar en index.css, junto a los bloques de Productos y Personal.
+   Requiere las variables de mesago-tokens.css.
+   ========================================================================== */
+
+.ms-modulo {
+  font-family: var(--mg-font, inherit);
+  color: var(--mg-text, #1f2430);
+  padding: 8px 0;
+}
+
+.ms-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.ms-titulo {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 4px 0;
+}
+
+.ms-subtitulo {
+  font-size: 14px;
+  color: var(--mg-text-soft, #6b7280);
+  margin: 0;
+}
+
+.ms-btn-nueva {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--mg-orange, #f97316);
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: var(--mg-radius-pill, 999px);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.ms-btn-nueva:hover {
+  background: var(--mg-orange-dark, #ea580c);
+}
+
+.ms-btn-nueva:active {
+  transform: scale(0.98);
+}
+
+/* ---------- Stats ---------- */
+
+.ms-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1100px) {
+  .ms-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .ms-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ms-stat-card {
+  background: var(--mg-white, #fff);
+  border-radius: var(--mg-radius-lg, 20px);
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  box-shadow: var(--mg-shadow-card, 0 4px 16px rgba(16, 24, 40, 0.06));
+}
+
+.ms-stat-icono {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--mg-radius-md, 14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ms-stat-icono--azul {
+  background: var(--mg-blue-bg, #eaf1ff);
+  color: var(--mg-blue-text, #2563eb);
+}
+.ms-stat-icono--verde {
+  background: var(--mg-green-bg, #e9f9ef);
+  color: var(--mg-green-text, #16a34a);
+}
+.ms-stat-icono--naranja {
+  background: var(--mg-amber-bg, #fef1e6);
+  color: var(--mg-amber-text, #ea580c);
+}
+.ms-stat-icono--morado {
+  background: var(--mg-purple-bg, #f1ecfe);
+  color: var(--mg-purple-text, #7c3aed);
+}
+
+.ms-stat-label {
+  font-size: 13px;
+  color: var(--mg-text-soft, #6b7280);
+  margin: 0 0 6px 0;
+}
+
+.ms-stat-valor {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 2px 0;
+  line-height: 1;
+}
+
+.ms-stat-nota {
+  font-size: 12px;
+  color: var(--mg-text-faint, #9aa1af);
+  margin: 0;
+}
+
+/* ---------- Estado vacío / cargando ---------- */
+
+.ms-cargando {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--mg-text-soft, #6b7280);
+  font-size: 14px;
+}
+
+.ms-vacio {
+  text-align: center;
+  padding: 56px 0;
+  color: var(--mg-text-faint, #9aa1af);
+}
+
+.ms-vacio svg {
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.ms-vacio-titulo {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--mg-text-soft, #6b7280);
+  margin: 0 0 4px 0;
+}
+
+.ms-vacio-texto {
+  font-size: 13px;
+  margin: 0;
+}
+
+/* ---------- Grid de mesas ---------- */
+
+.ms-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1100px) {
+  .ms-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .ms-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ms-card {
+  background: var(--mg-white, #fff);
+  border-radius: var(--mg-radius-lg, 20px);
+  overflow: hidden;
+  box-shadow: var(--mg-shadow-card, 0 4px 16px rgba(16, 24, 40, 0.06));
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.ms-card:hover {
+  box-shadow: var(--mg-shadow-card-hover, 0 10px 24px rgba(16, 24, 40, 0.09));
+  transform: translateY(-2px);
+}
+
+.ms-card-foto {
+  width: 100%;
+  height: 225px;
+  background-size: cover;
+  background-position: inherit;
+  background-color: var(--mg-bg, #f5f6fa);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 12px;
+}
+
+.ms-card-foto-vacia {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mg-text-faint, #9aa1af);
+}
+
+.ms-badge-estado {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: var(--mg-radius-pill, 999px);
+  background: rgba(255, 255, 255, 0.95);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ms-badge-estado--disponible {
+  color: var(--mg-green-text, #16a34a);
+}
+.ms-badge-estado--ocupada {
+  color: var(--mg-blue-text, #2563eb);
+}
+
+.ms-card-body {
+  padding: 16px;
+  position: relative;
+  z-index: 2;
+}
+
+.ms-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: -34px;
+  margin-bottom: 12px;
+}
+
+.ms-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  border: 3px solid var(--mg-white, #fff);
+  position: relative;
+  z-index: 2;
+}
+
+.ms-icon--disponible {
+  background: var(--mg-blue, #3b82f6);
+}
+.ms-icon--ocupada {
+  background: var(--mg-blue, #3b82f6);
+}
+
+.ms-card-titulo {
+  padding-top: 34px;
+  min-width: 0;
+}
+
+.ms-card-titulo h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 2px 0;
+}
+
+.ms-qr-texto {
+  font-size: 12px;
+  color: var(--mg-text-faint, #9aa1af);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ms-detalles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px solid var(--mg-border, #eef0f4);
+  margin-bottom: 14px;
+}
+
+.ms-detalles span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--mg-text-soft, #6b7280);
+}
+
+.ms-detalles svg {
+  color: var(--mg-text-faint, #9aa1af);
+  flex-shrink: 0;
+}
+
+.ms-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.ms-accion {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--mg-radius-sm, 10px);
+  padding: 9px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+  white-space: nowrap;
+}
+
+.ms-accion:hover {
+  filter: brightness(0.96);
+}
+
+.ms-accion--qr {
+  background: var(--mg-blue-bg, #eaf1ff);
+  color: var(--mg-blue-text, #2563eb);
+}
+.ms-accion--editar {
+  background: var(--mg-green-bg, #e9f9ef);
+  color: var(--mg-green-text, #16a34a);
+}
+.ms-accion--eliminar {
+  background: var(--mg-red-bg, #fdecec);
+  color: var(--mg-red-text, #ef4444);
+}
+
+/* ---------- Modal de QR ---------- */
+
+.ms-qr-modal {
+  text-align: center;
+  padding: 12px;
+}
+
+.ms-qr-imagen {
+  width: 220px;
+  height: 220px;
+  border-radius: var(--mg-radius-md, 14px);
+}
+
+.ms-qr-instruccion {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--mg-text-soft, #6b7280);
+}
+
+.ms-qr-acciones {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.ms-qr-btn-descargar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mg-orange, #f97316);
+  color: #fff;
+  text-decoration: none;
+  padding: 10px 18px;
+  border-radius: var(--mg-radius-pill, 999px);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.ms-qr-btn-descargar:hover {
+  background: var(--mg-orange-dark, #ea580c);
+}
+
+.ms-qr-btn-regenerar {
+  background: var(--mg-blue-bg, #eaf1ff);
+  color: var(--mg-blue-text, #2563eb);
+  border: none;
+  padding: 10px 18px;
+  border-radius: var(--mg-radius-pill, 999px);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* ==========================
+   TOGGLE ESTADO — MesaForm (Disponible / Ocupada)
+   ========================== */
+
+.toggle-estado-mesa {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.toggle-opcion-mesa {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  background: #fff;
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toggle-opcion-mesa:hover {
+  border-color: #d1d5db;
+}
+
+.toggle-opcion-mesa.disponible.activo {
+  border-color: #16a34a;
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.toggle-opcion-mesa.ocupada.activo {
+  border-color: #dc2626;
+  background: #fee2e2;
+  color: #dc2626;
+}

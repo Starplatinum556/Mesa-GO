@@ -2,7 +2,7 @@
 // (token desde sessionStorage, misma API_URL).
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  "http://localhost:4000/api";
+  `http://${window.location.hostname}:4000/api`;
 
 function authHeaders() {
   const token = sessionStorage.getItem("token");
@@ -36,6 +36,16 @@ export async function obtenerMiPerfil() {
 // PATCH /api/mi-perfil — edita datos personales (no contraseña ni foto).
 export async function actualizarMiPerfil(datos) {
   const res = await fetch(`${API_URL}/mi-perfil`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify(datos),
+  });
+  return manejarRespuesta(res);
+}
+
+// PATCH /api/mi-perfil/password — { passwordActual, passwordNueva }
+export async function cambiarPassword(datos) {
+  const res = await fetch(`${API_URL}/mi-perfil/password`, {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify(datos),
