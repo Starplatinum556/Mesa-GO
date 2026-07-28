@@ -43,6 +43,16 @@ export async function actualizarMiPerfil(datos) {
   return manejarRespuesta(res);
 }
 
+// PATCH /api/mi-perfil/password — { passwordActual, passwordNueva }
+export async function cambiarPassword(datos) {
+  const res = await fetch(`${API_URL}/mi-perfil/password`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify(datos),
+  });
+  return manejarRespuesta(res);
+}
+
 // POST /api/mi-perfil/foto — sube/reemplaza la foto de perfil.
 // No usa authHeaders() porque esa función fija "Content-Type: application/json";
 // con FormData el navegador arma el multipart/form-data con su boundary solo.

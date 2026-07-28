@@ -589,3 +589,510 @@
     width: 100%;
   }
 }
+
+/* ========================= */
+/* CARRITO DE COMPRAS MG-53 */
+/* ========================= */
+
+.carrito-resumen {
+  border: none;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+.carrito-resumen:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.carrito-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.carrito-panel {
+  width: min(460px, 100%);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  box-shadow: -16px 0 40px rgba(15, 23, 42, 0.2);
+  animation: abrir-carrito 0.22s ease-out;
+}
+
+@keyframes abrir-carrito {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+.carrito-panel-header {
+  padding: 24px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.carrito-panel-header p {
+  margin: 0 0 4px;
+  color: #16a34a;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.carrito-panel-header h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 24px;
+}
+
+.carrito-cerrar {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #f1f5f9;
+  color: #334155;
+  cursor: pointer;
+}
+
+.carrito-cerrar:hover {
+  background: #e2e8f0;
+}
+
+.carrito-productos {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 22px;
+}
+
+.carrito-producto {
+  padding: 16px 0;
+  border-bottom: 1px solid #e2e8f0;
+  display: grid;
+  grid-template-columns: 58px 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.carrito-producto-icono {
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #287cff, #55a5ff);
+  font-size: 27px;
+}
+
+.carrito-producto-info h3 {
+  margin: 0 0 5px;
+  color: #111827;
+  font-size: 16px;
+}
+
+.carrito-producto-info p {
+  margin: 0 0 10px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.carrito-cantidad {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.carrito-cantidad button {
+  width: 31px;
+  height: 31px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: white;
+  color: #334155;
+  cursor: pointer;
+}
+
+.carrito-cantidad button:hover:not(:disabled) {
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+.carrito-cantidad button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.carrito-cantidad strong {
+  min-width: 24px;
+  text-align: center;
+}
+
+.carrito-producto-acciones {
+  min-width: 74px;
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+}
+
+.carrito-producto-acciones > strong {
+  color: #111827;
+  font-size: 16px;
+}
+
+.carrito-eliminar {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: #fee2e2;
+  color: #dc2626;
+  cursor: pointer;
+}
+
+.carrito-eliminar:hover {
+  background: #fecaca;
+}
+
+.carrito-panel-footer {
+  padding: 20px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.carrito-total {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.carrito-total span {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.carrito-total strong {
+  color: #111827;
+  font-size: 24px;
+}
+
+.carrito-vaciar {
+  width: 100%;
+  min-height: 45px;
+  border: 1px solid #dc2626;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  color: #dc2626;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.carrito-vaciar:hover {
+  background: #fef2f2;
+}
+
+.carrito-vacio {
+  flex: 1;
+  padding: 40px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  color: #64748b;
+}
+
+.carrito-vacio h3 {
+  margin: 8px 0 0;
+  color: #111827;
+  font-size: 21px;
+}
+
+.carrito-vacio p {
+  max-width: 290px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.carrito-vacio button {
+  margin-top: 10px;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  background: #16a34a;
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+}
+/* ========================= */
+/* RESPONSIVE */
+/* ========================= */
+
+@media (max-width: 980px) {
+  .navbar {
+    grid-template-columns: 1fr;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .logo-mesago {
+    justify-content: center;
+  }
+
+  .menu-nav,
+  .acciones-navbar {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .banner {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .banner-icono {
+    margin: auto;
+  }
+
+  .banner-frase {
+    text-align: center;
+  }
+
+  .inicio-contenido {
+    grid-template-columns: 1fr;
+  }
+
+  .beneficios {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .pagina,
+  .auth-pagina {
+    padding: 10px;
+  }
+
+  .banner h2 {
+    font-size: 32px;
+  }
+
+  .texto-principal h3 {
+    font-size: 32px;
+  }
+
+  .botones-principales {
+    flex-direction: column;
+  }
+
+  .pasos {
+    grid-template-columns: 1fr;
+  }
+
+  .resumen-sistema {
+    grid-template-columns: 1fr;
+  }
+
+  .beneficios {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-card {
+    padding: 26px;
+  }
+
+  .opciones-form {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ========================= */
+/* DASHBOARD RESTAURANTE PRO */
+/* ========================= */
+
+.admin-dashboard {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 265px 1fr;
+  background: #f6f8fb;
+  color: #111827;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: #0f1b30;
+  border-right: none;
+  padding: 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 6px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 12px;
+}
+
+.admin-logo-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--color-primario, #ff7a1a);
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+/* ========================= */
+/* PEDIDO TEMPORAL MG-57 */
+/* ========================= */
+
+.pedido-observaciones {
+  margin-bottom: 16px;
+}
+
+.pedido-observaciones label {
+  display: block;
+  margin-bottom: 7px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.pedido-observaciones textarea {
+  width: 100%;
+  min-height: 82px;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: white;
+  color: #111827;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+}
+
+.pedido-observaciones textarea:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+.pedido-observaciones small {
+  display: block;
+  margin-top: 5px;
+  color: #64748b;
+  text-align: right;
+}
+
+.pedido-temporal-guardado {
+  margin-bottom: 16px;
+  padding: 11px 13px;
+  border: 1px solid #86efac;
+  border-radius: 11px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 13px;
+}
+
+.carrito-acciones-finales {
+  display: grid;
+  gap: 10px;
+}
+
+.carrito-guardar-pedido {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: #16a34a;
+  color: white;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.carrito-guardar-pedido:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.carrito-guardar-pedido:disabled,
+.carrito-vaciar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .carrito-panel {
+    width: 100%;
+  }
+
+  .carrito-panel-header {
+    padding: 20px;
+  }
+
+  .carrito-productos {
+    padding: 12px 18px;
+  }
+
+  .carrito-producto {
+    grid-template-columns: 50px 1fr auto;
+    gap: 10px;
+  }
+
+  .carrito-producto-icono {
+    width: 58px;
+    height: 58px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #287cff, #55a5ff);
+    font-size: 27px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  
+  .carrito-producto-icono img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: inherit;
+  }
+}

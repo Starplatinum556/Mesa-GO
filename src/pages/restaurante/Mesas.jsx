@@ -12,6 +12,7 @@ import {
 import { obtenerZonas } from "../../services/zonasService";
 import Modal from "../../components/Modal";
 import MesaForm from "../../components/MesaForm";
+import "../../styles/administrador/mesas.css";
 
 const INTERVALO_POLLING_MS = 15000; // recarga automática de mesas
 

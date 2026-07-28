@@ -483,3 +483,31 @@
 .mp-btn-guardar:disabled {
   opacity: 0.65;
 }
+
+/* ── MP-58: cambio de contraseña (agregar al final de perfil.css) ── */
+
+.mp-password-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0.25rem 0 0.5rem;
+}
+
+.mp-campo-password {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.mp-campo-password label {
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+/* .mp-form-acciones ya existe en perfil.css (justify-content: flex-end);
+   acá el formulario de contraseña usa 2 botones en vez de 1, así que
+   solo hace falta el espacio entre ellos. */
+.mp-form-acciones {
+  gap: 0.6rem;
+}

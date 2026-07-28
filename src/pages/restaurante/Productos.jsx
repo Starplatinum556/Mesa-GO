@@ -26,12 +26,8 @@ import {
 import { urlImagen } from "../../api";
 import Modal from "../../components/Modal";
 import ProductoForm from "../../components/ProductoForm";
-// Los estilos de esta vista (clases pv-*) viven en tu index.css,
-// junto con los tokens de mesago-tokens.css. No se importa un .css aparte
-// para evitar el error de Vite por archivo no encontrado.
+import "../../styles/administrador/productos.css";
 
-// Colores de badge por categoría. Si aparece una categoría nueva que no está
-// aquí, cae en el "default" y no rompe nada.
 const BADGES_CATEGORIA = {
   comida: "pv-badge--azul",
   bebidas: "pv-badge--cian",

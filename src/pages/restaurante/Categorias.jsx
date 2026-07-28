@@ -23,6 +23,7 @@ import {
   cambiarEstadoCategoria,
   eliminarCategoria,
 } from "../../services/categoriasService";
+import "../../styles/administrador/categorias.css";
 
 // MG-65: cada categoría se pinta con un ícono y color propios según
 // palabras clave en el nombre, para que el módulo se sienta vivo en

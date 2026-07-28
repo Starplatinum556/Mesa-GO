@@ -1,0 +1,597 @@
+/* ==========================================================================
+   VISTA: Productos (Gestión de Productos) — clases pv-*
+   ==========================================================================
+*/
+
+/* ==========================================================================
+   Productos — vista de tarjetas (prefijo pv- para no chocar con otros estilos)
+   Requiere las variables de mesago-tokens.css cargadas globalmente.
+   ========================================================================== */
+
+.pv-modulo {
+  font-family: var(--mg-font, inherit);
+  color: var(--mg-text, #1f2430);
+  padding: 8px 0;
+}
+
+/* ---------- Header ---------- */
+
+.pv-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.pv-titulo {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 4px 0;
+}
+
+.pv-subtitulo {
+  font-size: 14px;
+  color: var(--mg-text-soft, #6b7280);
+  margin: 0;
+}
+
+.pv-btn-nuevo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--mg-orange, #f97316);
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: var(--mg-radius-pill, 999px);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.pv-btn-nuevo:hover {
+  background: var(--mg-orange-dark, #ea580c);
+}
+
+.pv-btn-nuevo:active {
+  transform: scale(0.98);
+}
+
+/* ---------- Stats ---------- */
+
+.pv-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1100px) {
+  .pv-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .pv-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pv-stat-card {
+  background: var(--mg-white, #fff);
+  border-radius: var(--mg-radius-lg, 20px);
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  box-shadow: var(--mg-shadow-card, 0 4px 16px rgba(16, 24, 40, 0.06));
+}
+
+.pv-stat-icono {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--mg-radius-md, 14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pv-stat-icono--morado {
+  background: var(--mg-purple-bg, #f1ecfe);
+  color: var(--mg-purple-text, #7c3aed);
+}
+.pv-stat-icono--verde {
+  background: var(--mg-green-bg, #e9f9ef);
+  color: var(--mg-green-text, #16a34a);
+}
+.pv-stat-icono--naranja {
+  background: var(--mg-amber-bg, #fef1e6);
+  color: var(--mg-amber-text, #ea580c);
+}
+.pv-stat-icono--azul {
+  background: var(--mg-blue-bg, #eaf1ff);
+  color: var(--mg-blue-text, #2563eb);
+}
+
+.pv-stat-label {
+  font-size: 13px;
+  color: var(--mg-text-soft, #6b7280);
+  margin: 0 0 6px 0;
+}
+
+.pv-stat-valor {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 2px 0;
+  line-height: 1;
+}
+
+.pv-stat-nota {
+  font-size: 12px;
+  color: var(--mg-text-faint, #9aa1af);
+  margin: 0;
+}
+
+/* ---------- Controles / filtros ---------- */
+
+.pv-controles {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.pv-buscador {
+  flex: 1 1 260px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--mg-white, #fff);
+  border: 1px solid var(--mg-border, #eef0f4);
+  border-radius: var(--mg-radius-pill, 999px);
+  padding: 12px 18px;
+  color: var(--mg-text-faint, #9aa1af);
+}
+
+.pv-buscador input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  color: var(--mg-text, #1f2430);
+  background: transparent;
+}
+
+.pv-select {
+  border: 1px solid var(--mg-border, #eef0f4);
+  background: var(--mg-white, #fff);
+  border-radius: var(--mg-radius-pill, 999px);
+  padding: 12px 18px;
+  font-size: 14px;
+  color: var(--mg-text, #1f2430);
+  cursor: pointer;
+  min-width: 170px;
+}
+
+.pv-btn-refrescar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--mg-border, #eef0f4);
+  background: var(--mg-white, #fff);
+  color: var(--mg-text-soft, #6b7280);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.2s ease;
+}
+
+.pv-btn-refrescar:hover {
+  background: var(--mg-bg, #f5f6fa);
+}
+
+.pv-btn-refrescar:active svg {
+  transform: rotate(180deg);
+}
+
+.pv-btn-refrescar svg {
+  transition: transform 0.3s ease;
+}
+
+/* ---------- Grid de tarjetas ---------- */
+
+.pv-cargando,
+.pv-vacio {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--mg-text-soft, #6b7280);
+  font-size: 14px;
+}
+
+.pv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1100px) {
+  .pv-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .pv-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pv-card {
+  background: var(--mg-white, #fff);
+  border-radius: var(--mg-radius-lg, 20px);
+  overflow: hidden;
+  box-shadow: var(--mg-shadow-card, 0 4px 16px rgba(16, 24, 40, 0.06));
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.pv-card:hover {
+  box-shadow: var(--mg-shadow-card-hover, 0 10px 24px rgba(16, 24, 40, 0.09));
+  transform: translateY(-2px);
+}
+
+.pv-card-imagen {
+  width: 110px;
+  height: 130px;
+  flex-shrink: 0;
+  border-radius: var(--mg-radius-md, 14px);
+  overflow: hidden;
+  background: var(--mg-bg, #f5f6fa);
+}
+
+.pv-card-imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pv-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Botón "cambiar imagen": oculto por defecto, aparece al pasar el mouse
+   sobre la card (o siempre visible en pantallas táctiles vía :focus-within) */
+.pv-imagen-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(17, 20, 28, 0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.pv-card:hover .pv-imagen-overlay,
+.pv-imagen-overlay:focus-within {
+  opacity: 1;
+}
+
+.pv-imagen-overlay:hover {
+  background: rgba(17, 20, 28, 0.75);
+}
+
+.pv-imagen-input-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pv-imagen-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: pv-girar 0.7s linear infinite;
+}
+
+@keyframes pv-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pv-card-cuerpo {
+  padding: 16px;
+  position: relative;
+}
+
+.pv-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.pv-card-top-row {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+}
+
+.pv-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--mg-radius-pill, 999px);
+}
+
+.pv-badge--azul {
+  background: var(--mg-blue-bg, #eaf1ff);
+  color: var(--mg-blue-text, #2563eb);
+}
+.pv-badge--cian {
+  background: var(--mg-cyan-bg, #e6f6fe);
+  color: var(--mg-cyan-text, #0284c7);
+}
+.pv-badge--rosa {
+  background: var(--mg-pink-bg, #fdeaf3);
+  color: var(--mg-pink-text, #db2777);
+}
+.pv-badge--ambar {
+  background: var(--mg-amber-bg, #fef1e6);
+  color: var(--mg-amber-text, #ea580c);
+}
+.pv-badge--morado {
+  background: var(--mg-purple-bg, #f1ecfe);
+  color: var(--mg-purple-text, #7c3aed);
+}
+
+.pv-menu-btn {
+  border: none;
+  background: transparent;
+  color: var(--mg-text-faint, #9aa1af);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  flex-shrink: 0;
+}
+ 
+.pv-menu-btn:hover {
+  background: var(--mg-bg, #f5f6fa);
+}
+ 
+.pv-menu-dropdown {
+  position: absolute;
+  top: 28px;
+  right: 0;
+  background: var(--mg-white, #fff);
+  border: 1px solid var(--mg-border, #eef0f4);
+  border-radius: var(--mg-radius-sm, 10px);
+  box-shadow: var(--mg-shadow-card, 0 4px 16px rgba(16, 24, 40, 0.06));
+  z-index: 5;
+  min-width: 170px;
+  overflow: hidden;
+}
+ 
+.pv-menu-dropdown button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--mg-text, #1f2430);
+  cursor: pointer;
+}
+ 
+.pv-menu-dropdown button:hover {
+  background: var(--mg-bg, #f5f6fa);
+}
+ 
+.pv-card-nombre {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+}
+ 
+.pv-card-descripcion {
+  font-size: 12px;
+  color: var(--mg-text-soft, #6b7280);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+ 
+.pv-card-precio-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+  flex-wrap: wrap;
+}
+ 
+.pv-card-precio {
+  font-size: 17px;
+  font-weight: 800;
+}
+ 
+.pv-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--mg-radius-pill, 999px);
+  white-space: nowrap;
+}
+ 
+.pv-estado-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+ 
+.pv-estado--disponible {
+  background: var(--mg-green-bg, #e9f9ef);
+  color: var(--mg-green-text, #16a34a);
+}
+.pv-estado--disponible .pv-estado-punto {
+  background: var(--mg-green, #16a34a);
+}
+ 
+.pv-estado--no-disponible {
+  background: var(--mg-amber-bg, #fef1e6);
+  color: var(--mg-amber-text, #ea580c);
+}
+.pv-estado--no-disponible .pv-estado-punto {
+  background: var(--mg-orange, #f97316);
+}
+ 
+/* Fila de acciones: ocupa TODO el ancho de la card (imagen + info),
+   separada por una línea superior, 3 botones iguales solo con ícono. */
+.pv-card-acciones {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--mg-border, #eef0f4);
+}
+ 
+.pv-accion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 12px 0;
+  cursor: pointer;
+  transition: filter 0.15s ease, background 0.15s ease;
+}
+ 
+.pv-accion:not(:last-child) {
+  border-right: 1px solid var(--mg-border, #eef0f4);
+}
+ 
+.pv-accion--editar {
+  color: var(--mg-blue-text, #2563eb);
+}
+.pv-accion--editar:hover {
+  background: var(--mg-blue-bg, #eaf1ff);
+}
+ 
+.pv-accion--ver {
+  color: var(--mg-green-text, #16a34a);
+}
+.pv-accion--ver:hover {
+  background: var(--mg-green-bg, #e9f9ef);
+}
+ 
+.pv-accion--eliminar {
+  color: var(--mg-red-text, #ef4444);
+}
+.pv-accion--eliminar:hover {
+  background: var(--mg-red-bg, #fdecec);
+}
+
+/* ---------- Paginación ---------- */
+
+.pv-paginacion {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pv-pagina-flecha,
+.pv-pagina-num {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--mg-radius-sm, 10px);
+  border: 1px solid var(--mg-border, #eef0f4);
+  background: var(--mg-white, #fff);
+  color: var(--mg-text-soft, #6b7280);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pv-pagina-flecha:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pv-pagina-num--activa {
+  background: var(--mg-orange, #f97316);
+  border-color: var(--mg-orange, #f97316);
+  color: #fff;
+}
+
+.pv-pagina-ellipsis {
+  padding: 0 4px;
+  color: var(--mg-text-faint, #9aa1af);
+}
+
+.pv-mostrar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--mg-text-soft, #6b7280);
+}
+
+.pv-mostrar select {
+  border: 1px solid var(--mg-border, #eef0f4);
+  border-radius: var(--mg-radius-sm, 10px);
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--mg-text, #1f2430);
+}
+
+/* Agregar en index.css, junto a las reglas existentes de .producto-imagen-espacio */
+
+.producto-imagen-espacio {
+  overflow: hidden; /* recorta la miniatura a la forma del contenedor existente */
+}
+
+.producto-imagen-miniatura {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
