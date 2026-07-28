@@ -7,6 +7,7 @@ import {
   obtenerDetallePedido,
   obtenerPedidos,
 } from "../../services/pedidosService";
+import "../../styles/cocinero/cocina.css";
 
 const PEDIDOS_POR_PAGINA = 8;
 const INTERVALO_POLLING_MS = 15000; // recarga automática de pedidos

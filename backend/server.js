@@ -1696,16 +1696,19 @@ app.get("/api/pedidos/:id", verificarToken, verificarRol("ADMIN", "COCINERO", "D
           dp.id,
           pr.id AS producto_id,
           pr.nombre,
-          pr.categoria,
+          c.nombre AS categoria,
           dp.cantidad,
           dp.precio_unitario,
           (dp.cantidad * dp.precio_unitario) AS subtotal
       FROM detalle_pedido dp
       JOIN productos pr
         ON pr.id = dp.producto_id
+      LEFT JOIN categorias c
+        ON c.id = pr.categoria_id
+        AND c.restaurante_id = pr.restaurante_id
       WHERE dp.pedido_id = $1
       ORDER BY
-        COALESCE(pr.categoria, ''),
+        COALESCE(c.nombre, ''),
         pr.nombre`,
       [id]
     );

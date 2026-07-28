@@ -14,6 +14,7 @@ import {
   obtenerDetalleEntrega,
   obtenerHistorialEntregas,
 } from "../../services/entregasService";
+import "../../styles/despachador/historial.css";
 
 /* ──────────────────────────────
    Helpers

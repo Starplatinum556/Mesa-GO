@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { obtenerReportes } from "../../services/reportesService";
+import "../../styles/administrador/reportes.css";
 
 const MESES_CORTOS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 const MESES_LARGOS = [

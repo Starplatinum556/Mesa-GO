@@ -2,7 +2,7 @@
 // (token desde sessionStorage, misma API_URL).
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  "http://localhost:4000/api";
+  `http://${window.location.hostname}:4000/api`;
 
 function authHeaders() {
   const token = sessionStorage.getItem("token");

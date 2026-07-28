@@ -19,6 +19,7 @@ import {
 import toast from "react-hot-toast";
 import { urlImagen } from "../../api";
 import { actualizarMiPerfil, obtenerMiPerfil, subirFotoPerfil } from "../../services/perfilService";
+import "../../styles/perfil.css";
 
 const NOMBRE_ROL = {
   ADMIN: "Administrador",

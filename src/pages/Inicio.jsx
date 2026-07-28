@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Truck,
 } from "lucide-react";
+import "../styles/inicio.css";
 
 /* ──────────────────────────────
    Hooks propios (sin librerías nuevas: el proyecto no trae

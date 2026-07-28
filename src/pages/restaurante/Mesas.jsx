@@ -13,6 +13,8 @@ import { obtenerZonas } from "../../services/zonasService";
 import Modal from "../../components/Modal";
 import MesaForm from "../../components/MesaForm";
 
+const INTERVALO_POLLING_MS = 15000; // recarga automática de mesas
+
 function Mesas() {
   const [qrData, setQrData] = useState(null);
   const [qrModalAbierto, setQrModalAbierto] = useState(false);
@@ -22,14 +24,15 @@ function Mesas() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [mesaEditar, setMesaEditar] = useState(null);
 
-  const cargarMesas = async () => {
+  const cargarMesas = async ({ mostrarCargando = false } = {}) => {
+    if (mostrarCargando) setCargando(true);
     try {
       const datos = await obtenerMesas();
       setMesas(datos);
     } catch (err) {
       toast.error(err.message || "No se pudo conectar con el servidor.");
     } finally {
-      setCargando(false);
+      if (mostrarCargando) setCargando(false);
     }
   };
 
@@ -47,8 +50,10 @@ function Mesas() {
   };
 
   useEffect(() => {
-    cargarMesas();
+    cargarMesas({ mostrarCargando: true });
     cargarZonas();
+    const idPolling = setInterval(() => cargarMesas(), INTERVALO_POLLING_MS);
+    return () => clearInterval(idPolling);
   }, []);
 
   const abrirModalNueva = () => {

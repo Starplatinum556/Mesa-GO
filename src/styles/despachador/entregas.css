@@ -1,0 +1,699 @@
+/* ============================================================
+   MG-48 — PANEL DE ENTREGAS
+   Pegar al final de src/index.css
+   Prefijo: mg48- para evitar conflictos
+   ============================================================ */
+
+/* Recepción */
+
+.recepcion-page {
+  min-width: 0;
+}
+
+.recepcion-header {
+  margin-bottom: 22px;
+}
+
+.recepcion-header h1 {
+  margin: 0;
+  font-size: 34px;
+  letter-spacing: -1px;
+  color: #111827;
+  font-weight: 900;
+}
+
+.recepcion-header p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+   /* ── Métricas ── */
+.mg48-metricas {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mg48-metrica {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1.5px solid #f1f5f9;
+}
+
+.mg48-metrica h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1;
+}
+
+.mg48-metrica p {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0.2rem 0 0.15rem;
+}
+
+.mg48-metrica span {
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
+
+.mg48-metrica-icono {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mg48-metrica-naranja .mg48-metrica-icono { background: #fff3ec; color: #ea580c; }
+.mg48-metrica-verde   .mg48-metrica-icono { background: #f0fdf4; color: #16a34a; }
+.mg48-metrica-azul    .mg48-metrica-icono { background: #eff6ff; color: #2563eb; }
+.mg48-metrica-morado  .mg48-metrica-icono { background: #f5f3ff; color: #7c3aed; }
+
+/* ── Grid 3 columnas ── */
+.mg48-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 340px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* ── Columnas ── */
+.mg48-col {
+  background: #fff;
+  border: 1.5px solid #f1f5f9;
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mg48-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.mg48-col-header h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.mg48-col-sub {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.mg48-col-badge {
+  min-width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0 0.5rem;
+}
+
+.mg48-col-badge-naranja { background: #ea580c; color: #fff; }
+.mg48-col-badge-verde   { background: #16a34a; color: #fff; }
+
+/* ── Tarjetas de pedido ── */
+.mg48-tarjetas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mg48-tarjeta {
+  border: 1.5px solid #f1f5f9;
+  border-radius: 14px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.mg48-tarjeta:hover {
+  border-color: #e5e7eb;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+
+.mg48-tarjeta-top {
+  display: flex;
+  gap: 0.875rem;
+  align-items: flex-start;
+}
+
+.mg48-card-icono {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mg48-tarjeta-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mg48-tarjeta-mesa {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.mg48-tarjeta-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mg48-tarjeta-codigo {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.mg48-tarjeta-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.mg48-tarjeta-sep {
+  opacity: 0.4;
+}
+
+/* ── Badges de estado ── */
+.mg48-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mg48-badge-listo    { background: #fff3ec; color: #ea580c; }
+.mg48-badge-entregado { background: #f0fdf4; color: #16a34a; }
+
+/* ── Botones de tarjeta ── */
+.mg48-btn-detalle {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1.5px solid #ea580c;
+  border-radius: 10px;
+  background: #fff;
+  color: #ea580c;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+
+.mg48-btn-detalle:hover {
+  background: #fff3ec;
+}
+
+.mg48-btn-finalizar {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1.5px solid #16a34a;
+  border-radius: 10px;
+  background: #fff;
+  color: #16a34a;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: background 0.18s;
+}
+
+.mg48-btn-finalizar:hover:not(:disabled) { background: #f0fdf4; }
+.mg48-btn-finalizar:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Paginación dentro de columnas ── */
+.mg48-paginacion {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+/* ── Estado vacío en columnas ── */
+.mg48-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  color: #9ca3af;
+  gap: 0.5rem;
+  min-height: 120px;
+}
+
+.mg48-vacio p {
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ── Panel Detalle (columna derecha) ── */
+.mg48-detalle {
+  background: #fff;
+  border: 1.5px solid #f1f5f9;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+  position: sticky;
+  top: 20px;
+  overflow: hidden;
+}
+
+.mg48-detalle-vacio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: #9ca3af;
+  padding: 2rem;
+}
+
+.mg48-detalle-vacio p {
+  font-size: 0.875rem;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.mg48-detalle-encabezado {
+  padding: 1.25rem 1.25rem 0.75rem;
+  border-bottom: 1.5px solid #f1f5f9;
+}
+
+.mg48-detalle-titulo {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.mg48-detalle-codigo {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+.mg48-detalle-cuerpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mg48-detalle-cuerpo::-webkit-scrollbar { width: 4px; }
+.mg48-detalle-cuerpo::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 99px; }
+
+/* Info horizontal (Mesa | Hora | Estado) */
+.mg48-detalle-info {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.mg48-detalle-info > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.mg48-detalle-info > div > span {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.mg48-detalle-info > div > strong {
+  font-size: 0.875rem;
+  color: #111827;
+  font-weight: 700;
+}
+
+/* Observaciones */
+.mg48-detalle-obs {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 10px;
+  padding: 0.875rem;
+}
+
+.mg48-detalle-obs > span {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.mg48-detalle-obs > p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #78350f;
+  line-height: 1.5;
+}
+
+/* Productos */
+.mg48-detalle-productos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mg48-detalle-productos-header strong {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.mg48-detalle-productos-thead {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0 0.3rem;
+  border-bottom: 1.5px solid #f1f5f9;
+}
+
+.mg48-detalle-productos-thead span {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.mg48-detalle-items {
+  display: flex;
+  flex-direction: column;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.mg48-detalle-items::-webkit-scrollbar { width: 4px; }
+.mg48-detalle-items::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 99px; }
+
+.mg48-detalle-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #f8fafc;
+  font-size: 0.875rem;
+}
+
+.mg48-detalle-item:last-child { border-bottom: none; }
+
+.mg48-detalle-item > span:first-child {
+  color: #374151;
+  font-weight: 500;
+}
+
+.mg48-detalle-item > span:last-child {
+  color: #111827;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: right;
+}
+
+/* Botón de acción principal */
+.mg48-detalle-footer {
+  padding: 1rem 1.25rem 1.25rem;
+  border-top: 1.5px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+.mg48-btn-entregar {
+  width: 100%;
+  padding: 0.85rem;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background 0.18s;
+}
+
+.mg48-btn-entregar:hover:not(:disabled) { background: #15803d; }
+.mg48-btn-entregar:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Consejo inferior ── */
+.mg48-consejo {
+  margin-top: 1.25rem;
+  background: #eff6ff;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 0.875rem 1.1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  color: #1e40af;
+  font-size: 0.875rem;
+}
+
+.mg48-consejo svg { flex-shrink: 0; margin-top: 1px; }
+
+.mg48-consejo strong { font-weight: 700; }
+
+.mg48-consejo p { margin: 0; line-height: 1.5; }
+
+/* ── Utilitarios ── */
+.mg48-cargando {
+  text-align: center;
+  color: #9ca3af;
+  padding: 2rem;
+  font-size: 0.875rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1280px) {
+  .mg48-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mg48-detalle {
+    grid-column: 1 / -1;
+    position: static;
+    min-height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .mg48-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mg48-metricas {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .mg48-metricas {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   MG-48 — TICKET DE FINALIZACIÓN DE SERVICIO
+   Pegar al final del bloque MG-48 existente en src/index.css
+   Prefijo: mg48-factura- (NO es un módulo de facturación real,
+   solo un resumen visual tipo ticket antes de finalizar el
+   servicio y liberar la mesa).
+   ============================================================ */
+
+/* Contenedor: mismo panel de .mg48-detalle, con un look distinto */
+.mg48-factura {
+  background: #fdfdfb;
+  font-family: "Courier New", ui-monospace, monospace;
+}
+
+.mg48-factura-encabezado {
+  padding: 1.35rem 1.25rem 1rem;
+  border-bottom: 1.5px dashed #d1d5db;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.2rem;
+}
+
+.mg48-factura-marca {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #111827;
+}
+
+.mg48-factura-subtitulo {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mg48-factura-codigo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  margin-top: 0.35rem;
+}
+
+.mg48-factura-aviso {
+  margin-top: 0.5rem;
+  font-size: 0.68rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.mg48-factura-cuerpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mg48-factura-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.mg48-factura-meta span {
+  color: #6b7280;
+}
+
+.mg48-factura-meta strong {
+  color: #111827;
+  font-weight: 700;
+}
+
+.mg48-factura-divisor {
+  border-top: 1.5px dashed #d1d5db;
+  margin: 0.5rem 0;
+}
+
+.mg48-factura-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.mg48-factura-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.mg48-factura-item-nombre {
+  color: #374151;
+  flex: 1;
+}
+
+.mg48-factura-item-precio {
+  color: #111827;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mg48-factura-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 1.05rem;
+  padding-top: 0.25rem;
+}
+
+.mg48-factura-total span {
+  color: #374151;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.8rem;
+}
+
+.mg48-factura-total strong {
+  color: #111827;
+  font-weight: 800;
+}
+
+/* Footer con doble botón (confirmar / cancelar) */
+.mg48-factura-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.mg48-btn-cancelar-factura {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+
+.mg48-btn-cancelar-factura:hover:not(:disabled) { background: #f9fafb; }
+.mg48-btn-cancelar-factura:disabled { opacity: 0.6; cursor: not-allowed; }
