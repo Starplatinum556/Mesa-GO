@@ -2830,6 +2830,105 @@ app.patch(
   }
 );
 
+// Requiere el módulo nativo de Node — no hace falta instalar nada,
+// agrega esto junto a tus otros require() al inicio de server.js si
+// no lo tienes ya:
+// const crypto = require("crypto");
+
+// MG-XX: recuperación de contraseña — MODO DEMO.
+// En vez de enviar el enlace por correo (necesitaría Nodemailer +
+// credenciales SMTP), lo devolvemos directo en la respuesta para
+// poder probar el flujo completo sin configurar correo real.
+// El resto (token hasheado, expiración de 1h, un solo uso) ya queda
+// armado tal cual se necesitaría en producción — el día que agreguen
+// envío real, lo único que cambia es que "token" deja de venir en
+// la respuesta y en su lugar se manda por correo.
+app.post("/api/forgot-password", async (req, res) => {
+  const { correo } = req.body;
+
+  if (!correo || !correo.trim()) {
+    return res.status(400).json({ error: "Ingresa tu correo electrónico." });
+  }
+
+  try {
+    const usuario = await pool.query(
+      "SELECT id FROM usuarios WHERE correo = $1",
+      [correo.trim()]
+    );
+
+    if (usuario.rows.length === 0) {
+      return res.status(404).json({ error: "No existe una cuenta con ese correo." });
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const expiraEn = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+    await pool.query(
+      `INSERT INTO password_reset_tokens (usuario_id, token, expira_en, usado)
+       VALUES ($1, $2, $3, false)`,
+      [usuario.rows[0].id, tokenHash, expiraEn]
+    );
+
+    res.json({
+      mensaje: "Enlace de recuperación generado.",
+      modoDemo: true,
+      token, // MODO DEMO: esto normalmente NUNCA viaja en la respuesta
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al generar el enlace de recuperación." });
+  }
+});
+
+// Confirma el restablecimiento: valida el token (hasheado, no vencido,
+// no usado), cambia la contraseña y marca el token como usado — todo
+// en una transacción porque toca 2 tablas (usuarios + password_reset_tokens).
+app.post("/api/reset-password", async (req, res) => {
+  const { token, passwordNueva } = req.body;
+
+  if (!token || !passwordNueva) {
+    return res.status(400).json({ error: "Faltan datos para restablecer la contraseña." });
+  }
+  if (passwordNueva.length < 6) {
+    return res.status(400).json({ error: "La nueva contraseña debe tener al menos 6 caracteres." });
+  }
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const registro = await client.query(
+      `SELECT id, usuario_id FROM password_reset_tokens
+       WHERE token = $1 AND usado = false AND expira_en > NOW()`,
+      [tokenHash]
+    );
+
+    if (registro.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "El enlace no es válido o ya expiró." });
+    }
+
+    const { id: tokenId, usuario_id: usuarioId } = registro.rows[0];
+    const hash = await bcrypt.hash(passwordNueva, 10);
+
+    await client.query("UPDATE usuarios SET password = $1 WHERE id = $2", [hash, usuarioId]);
+    await client.query("UPDATE password_reset_tokens SET usado = true WHERE id = $1", [tokenId]);
+
+    await client.query("COMMIT");
+    res.json({ mensaje: "Contraseña restablecida correctamente." });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: "Error al restablecer la contraseña." });
+  } finally {
+    client.release();
+  }
+});
+
+
 const PORT = process.env.PORT || 4000;
 const HOST = "0.0.0.0";
 

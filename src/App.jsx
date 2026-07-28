@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Inicio from "./pages/Inicio";
 import Login from "./pages/Login";
 import Registro from "./pages/Registro";
+import OlvidePassword from "./pages/OlvidePassword";
+import RestablecerPassword from "./pages/RestablecerPassword";
 
 import RestauranteLayout from "./pages/restaurante/RestauranteLayout";
 import Cocina from "./pages/restaurante/Cocina";
@@ -47,6 +49,8 @@ function App() {
         <Route path="/" element={<Inicio />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
+        <Route path="/olvide-password" element={<OlvidePassword />} />
+        <Route path="/restablecer-password/:token" element={<RestablecerPassword />} />
         <Route path="/menu/:codigoQr" element={<MenuDigital />} />
 
         {/* Panel interno del restaurante */}

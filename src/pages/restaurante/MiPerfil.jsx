@@ -538,7 +538,7 @@ function MiPerfil() {
                 label="Contraseña"
                 value="**********"
                 Icon={Lock}
-                accion="Cambiar contraseña"
+                accion={editando ? "Cambiar contraseña" : null}
                 onAccion={iniciarCambioPassword}
               />
             ) : (
